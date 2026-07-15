@@ -3,35 +3,42 @@
 import { motion } from "framer-motion";
 import {
   HeartPulse,
-  BrainCircuit,
-  Laptop,
+  MonitorSmartphone,
+  Code2,
   BarChart3,
+  BrainCircuit,
 } from "lucide-react";
 
 const services = [
   {
-    title: "Patient Treatment",
-    description:
-      "Providing patient-centered care through clinical assessment, treatment planning, monitoring and evidence-based healthcare practices.",
+    title: "Healthcare Consulting",
     icon: HeartPulse,
+    description:
+      "Supporting healthcare organizations through clinical workflow improvement, patient care optimization and quality healthcare initiatives.",
   },
   {
     title: "Health Informatics",
+    icon: MonitorSmartphone,
     description:
-      "Supporting healthcare through digital health systems, clinical documentation and health information management.",
-    icon: BrainCircuit,
+      "Implementation of Electronic Medical Records, Health Information Systems, clinical documentation and digital health solutions.",
   },
   {
-    title: "Web Development",
+    title: "Software Development",
+    icon: Code2,
     description:
-      "Building responsive websites and modern web applications using React, Next.js, TypeScript and Tailwind CSS.",
-    icon: Laptop,
+      "Designing responsive websites, modern web applications and professional portfolio solutions using current technologies.",
   },
   {
     title: "Data Analytics",
-    description:
-      "Transforming healthcare and business data into meaningful insights using Python, SQL and visualization tools.",
     icon: BarChart3,
+    description:
+      "Transforming healthcare and business data into meaningful insights through dashboards, reporting and visualization.",
+  },
+  {
+    title: "Digital Health Solutions",
+    icon: BrainCircuit,
+    description:
+      "Exploring Artificial Intelligence, digital transformation and innovative technologies to improve healthcare delivery.",
   },
 ];
 
@@ -50,16 +57,17 @@ export default function Services() {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <p className="uppercase tracking-[0.3em] text-blue-600 font-semibold mb-4">
+          <p className="uppercase tracking-[0.35em] text-blue-600 font-bold mb-4">
             Services
           </p>
 
-          <h2 className="text-5xl font-bold text-slate-900 dark:text-white">
+          <h2 className="text-5xl font-extrabold text-slate-900 dark:text-white">
             What I Do
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+
           {services.map((service, index) => {
             const Icon = service.icon;
 
@@ -70,15 +78,19 @@ export default function Services() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{
                   duration: 0.6,
-                  delay: index * 0.15,
+                  delay: index * 0.1,
                 }}
                 viewport={{ once: true }}
-                className="rounded-3xl bg-white dark:bg-slate-800 shadow-lg p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300"
+                className="rounded-3xl bg-white dark:bg-slate-950 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 p-8"
               >
-                <Icon
-                  className="text-blue-600 mb-6"
-                  size={42}
-                />
+                <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+
+                  <Icon
+                    size={32}
+                    className="text-blue-600"
+                  />
+
+                </div>
 
                 <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
                   {service.title}
@@ -87,9 +99,11 @@ export default function Services() {
                 <p className="leading-8 text-slate-600 dark:text-slate-300">
                   {service.description}
                 </p>
+
               </motion.div>
             );
           })}
+
         </div>
 
       </div>
