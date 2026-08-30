@@ -9,7 +9,7 @@ const projects = [
     status: "Featured Store",
     icon: Smartphone,
     color: "bg-slate-900",
-    description: "A premium mobile phone and gadgets shop in Mwenge ITV, Dar es Salaam, specialising in the latest high-end devices and accessories.",
+    description: "iPhones Mwenge is a Premium Mobile and Gadgets Shop located in Mwenge ITV in Dar es Salaam where high end and only latest gadgets from top brands across the globe like Apple ,Samsung google Pixel,Guess,Polo Santa Barbara ,Pitaka,aulumu,Anker,powerology greenlion,Beats,JBL Sony .within the store you can get Phones,Speakers ,Phone Cases,USB cables ,Adapters,Earbuds,Headphones and many more gadgets",
     tech: ["Apple", "Samsung", "Google Pixel", "Premium Accessories", "Audio", "Mwenge"],
     link: "https://www.instagram.com/iphonesmwenge/",
   },
