@@ -30,16 +30,20 @@ export async function POST(request: Request) {
     const symptoms = typeof body.symptoms === "string" ? body.symptoms.trim() : "";
     const duration = typeof body.duration === "string" ? body.duration.trim() : "";
     const concerns = typeof body.concerns === "string" ? body.concerns.trim() : "";
+    const age = typeof body.age === "string" ? body.age.trim() : "";
+    const location = typeof body.location === "string" ? body.location.trim() : "";
 
-    if (!symptoms || !duration) {
-      return NextResponse.json({ error: "Please add your symptoms and when they began." }, { status: 400 });
+    if (!age || !symptoms || !duration) {
+      return NextResponse.json({ error: "Please add the patient age, symptoms, and when they began." }, { status: 400 });
     }
 
-    if (symptoms.length + duration.length + concerns.length > 6000) {
+    if (age.length + location.length + symptoms.length + duration.length + concerns.length > 6000) {
       return NextResponse.json({ error: "Please shorten your notes and try again." }, { status: 400 });
     }
 
     const searchQuery = [
+      "Patient age: " + age,
+      "Broad location (region, district, or ward): " + (location || "Not provided"),
       "Symptoms or concerns: " + symptoms,
       "When it began or changed: " + duration,
       "Questions or worries: " + (concerns || "None provided"),
