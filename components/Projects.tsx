@@ -53,12 +53,12 @@ const projects = [
 
 export default function Projects() {
   return (
-    <section id="projects" className="bg-slate-950 py-24 text-white">
+    <section id="projects" className="bg-white py-24 text-slate-900">
       <div className="mx-auto max-w-7xl px-6">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Projects</p>
           <h2 className="mt-3 text-4xl font-bold sm:text-5xl">Ideas built for people and impact.</h2>
-          <p className="mt-4 text-slate-300">Explore selected work across technology, healthcare and business.</p>
+          <p className="mt-4 text-slate-600">Explore selected work across technology, healthcare and business.</p>
         </motion.div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -66,17 +66,17 @@ export default function Projects() {
             const Icon = project.icon;
             const isAvailable = project.link !== "#";
             return (
-              <motion.article key={project.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }} className="flex flex-col rounded-2xl border border-slate-800 bg-slate-900/70 p-6 transition hover:-translate-y-1 hover:border-cyan-400/40">
+              <motion.article key={project.title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.06 }} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-cyan-400 hover:shadow-lg">
                 <div className="flex items-start justify-between gap-4">
                   <div className={"flex h-12 w-12 items-center justify-center rounded-xl " + project.color}>
                     <Icon className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-300">{project.status}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{project.status}</span>
                 </div>
                 <h3 className="mt-6 text-xl font-bold">{project.title}</h3>
                 <p className="mt-3 flex-1 text-sm leading-6 text-slate-300">{project.description}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  {project.tech.map((item) => <span key={item} className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">{item}</span>)}
+                  {project.tech.map((item) => <span key={item} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{item}</span>)}
                 </div>
                 {isAvailable ? (
                   <a href={project.link} target={project.link.startsWith("http") ? "_blank" : undefined} rel={project.link.startsWith("http") ? "noreferrer" : undefined} className="mt-6 inline-flex items-center gap-2 font-semibold text-cyan-300 hover:text-cyan-200">
