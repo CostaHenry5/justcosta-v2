@@ -15,10 +15,40 @@ export default function ClinicalAssistantPage() {
   const [duration, setDuration] = useState("");
   const [concerns, setConcerns] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [guidance, setGuidance] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   function createSummary(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setShowSummary(true);
+    setGuidance("");
+    setError("");
+  }
+
+  async function getGuidance() {
+    setIsLoading(true);
+    setError("");
+    setGuidance("");
+
+    try {
+      const response = await fetch("/api/clinical-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symptoms, duration, concerns }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "The AI service could not respond right now.");
+      }
+
+      setGuidance(data.guidance);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Something went wrong. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -39,7 +69,7 @@ export default function ClinicalAssistantPage() {
               Prepare for your next healthcare visit.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-              Use this private check-in to organise your symptoms and questions before speaking with a qualified healthcare professional.
+              Use this check-in to organise your symptoms and questions before speaking with a qualified healthcare professional.
             </p>
 
             <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/40">
@@ -62,7 +92,7 @@ export default function ClinicalAssistantPage() {
                 <ClipboardList className="text-blue-600" />
                 <h2 className="text-2xl font-bold">Your visit notes</h2>
               </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Nothing entered here is stored or sent.</p>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your notes are not stored by this website.</p>
 
               <label className="mt-6 block text-sm font-bold">
                 What symptoms or concerns would you like to discuss?
@@ -91,6 +121,18 @@ export default function ClinicalAssistantPage() {
                   <p><strong>Symptoms or concerns:</strong><br />{symptoms}</p>
                   <p><strong>When it began / changes:</strong><br />{duration}</p>
                   {concerns && <p><strong>Questions or worries:</strong><br />{concerns}</p>}
+                </div>
+
+                <div className="mt-6 border-t border-blue-200 pt-5 dark:border-blue-900">
+                  <h3 className="font-bold text-blue-950 dark:text-blue-100">Want general AI guidance?</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    If you continue, these notes will be sent to the AI service to generate general, non-diagnostic information. This website does not save a copy.
+                  </p>
+                  <button type="button" onClick={getGuidance} disabled={isLoading} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900">
+                    {isLoading ? "Preparing guidance…" : "Get AI guidance"}
+                  </button>
+                  {error && <p className="mt-4 text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
+                  {guidance && <div className="mt-5 rounded-xl bg-white p-5 leading-7 text-slate-800 shadow-sm dark:bg-slate-900 dark:text-slate-100 whitespace-pre-wrap">{guidance}</div>}
                 </div>
               </section>
             )}
