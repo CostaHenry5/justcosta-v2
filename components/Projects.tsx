@@ -8,8 +8,8 @@ const projects = [
     title: "iPhones Mwenge",
     status: "Featured Store",
     icon: Smartphone,
-    color: "bg-slate-900",
-    description: "iPhones Mwenge is a premium mobile and gadgets shop located at Mwenge ITV in Dar es Salaam. We specialise in the latest high-end devices and accessories from leading global brands, including Apple, Samsung, Google Pixel, Guess, Polo, Santa Barbara, Pitaka, Aulumu, Anker, Powerology, Green Lion, Beats, JBL and Sony. Discover phones, speakers, phone cases, USB cables, adapters, earbuds, headphones and many more gadgets—all in one place.",
+    color: "bg-cyan-600 text-white shadow-lg shadow-cyan-200",
+    description: "iPhones Mwenge is a Premium Mobile and Gadgets Shop located in Mwenge ITV in Dar es Salaam where high end and only latest gadgets from top brands across the globe like Apple ,Samsung google Pixel,Guess,Polo Santa Barbara ,Pitaka,aulumu,Anker,powerology greenlion,Beats,JBL Sony .within the store you can get Phones,Speakers ,Phone Cases,USB cables ,Adapters,Earbuds,Headphones and many more gadgets",
     tech: ["Apple", "Samsung", "Google Pixel", "Premium Accessories", "Audio", "Mwenge"],
     link: "https://www.instagram.com/iphonesmwenge/",
   },
@@ -58,7 +58,7 @@ export default function Projects() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 max-w-2xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Projects</p>
           <h2 className="mt-3 text-4xl font-bold sm:text-5xl">Ideas built for people and impact.</h2>
-          <p className="mt-4 text-slate-600">Explore selected work across technology, healthcare and business.</p>
+          <p className="mt-4 text-slate-700">Explore selected work across technology, healthcare and business.</p>
         </motion.div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
