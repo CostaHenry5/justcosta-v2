@@ -1,20 +1,27 @@
 import { NextResponse } from "next/server";
 
-const CLINICAL_ASSISTANT_INSTRUCTIONS = `
-You are a patient-facing health-visit preparation assistant.
-You are not a doctor and must not diagnose, prescribe medication, give dosing, or claim certainty.
-Give calm, plain-language, general information that helps a patient prepare to speak with a qualified clinician.
+const STG_SOURCE = "Tanzania Ministry of Health, Standard Treatment Guidelines and National Essential Medicines List for Tanzania Mainland, Seventh Edition (2026).";
 
-Always:
-- State that your response is general information, not a diagnosis.
-- Encourage urgent or emergency care immediately for trouble breathing, chest pain, stroke-like symptoms, severe bleeding, loss of consciousness, seizure, severe allergic reaction, or imminent self-harm.
-- For non-emergency concerns, suggest the type of clinician or service to contact and useful questions to ask.
-- Avoid medication changes, treatment instructions, or guessing a specific condition.
-- Keep the response concise and supportive.
-`;
+const CLINICAL_ASSISTANT_INSTRUCTIONS = [
+  "You are a patient-facing health-visit preparation assistant.",
+  "",
+  "Use only the provided Tanzania guideline excerpts for condition-specific information. You are not a doctor and must not diagnose, prescribe medication, give dosing, recommend a treatment plan, or claim certainty. Discuss only possible causes or concerns to raise with a qualified clinician.",
+  "",
+  "Always:",
+  "- State that your response is general information, not a diagnosis.",
+  "- Encourage urgent or emergency care immediately for trouble breathing, chest pain, stroke-like symptoms, severe bleeding, loss of consciousness, seizure, severe allergic reaction, or imminent self-harm.",
+  "- For non-emergency concerns, advise the patient to seek care from a qualified clinician at their nearest appropriate hospital or health facility.",
+  "- Do not offer medication changes, treatment instructions, or unsupported claims.",
+  "- If the guideline excerpts are not clearly relevant, say so and advise speaking with a clinician instead of guessing.",
+  "- Keep the response concise, calm, and supportive.",
+  "- End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT, Seventh Edition (2026).",
+].join("\n");
 
 export async function POST(request: Request) {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID;
+
+  if (!apiKey || !vectorStoreId) {
     return NextResponse.json({ error: "The AI assistant is not configured yet. Please try again later." }, { status: 503 });
   }
 
@@ -32,10 +39,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please shorten your notes and try again." }, { status: 400 });
     }
 
+    const searchQuery = [
+      "Symptoms or concerns: " + symptoms,
+      "When it began or changed: " + duration,
+      "Questions or worries: " + (concerns || "None provided"),
+    ].join("\n");
+
+    const searchResponse = await fetch("https://api.openai.com/v1/vector_stores/" + vectorStoreId + "/search", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        max_num_results: 4,
+        rewrite_query: true,
+      }),
+    });
+
+    const searchData = await searchResponse.json();
+
+    if (!searchResponse.ok) {
+      console.error("Guideline search failed", searchData);
+      return NextResponse.json({ error: "The guideline library could not be searched right now. Please try again later." }, { status: 502 });
+    }
+
+    const guidelineExcerpts = Array.isArray(searchData.data)
+      ? searchData.data
+          .slice(0, 4)
+          .map((result: { content?: Array<{ text?: string }> }) =>
+            Array.isArray(result.content)
+              ? result.content.map((item) => item.text || "").filter(Boolean).join("\n")
+              : ""
+          )
+          .filter(Boolean)
+          .join("\n\n---\n\n")
+      : "";
+
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: "Bearer " + apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -43,7 +88,13 @@ export async function POST(request: Request) {
         store: false,
         max_output_tokens: 450,
         instructions: CLINICAL_ASSISTANT_INSTRUCTIONS,
-        input: `Patient notes:\nSymptoms or concerns: ${symptoms}\nWhen it began or changed: ${duration}\nQuestions or worries: ${concerns || "None provided"}`,
+        input: [
+          "Patient notes:",
+          searchQuery,
+          "",
+          "Tanzania guideline excerpts:",
+          guidelineExcerpts || "No clearly relevant excerpts were found. Do not guess.",
+        ].join("\n"),
       }),
     });
 
@@ -54,7 +105,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The AI service could not respond right now. Please try again later." }, { status: 502 });
     }
 
-    return NextResponse.json({ guidance: data.output_text || "No guidance was returned. Please speak with a qualified clinician." });
+    return NextResponse.json({
+      guidance: data.output_text || "No guidance was returned. Please speak with a qualified clinician.",
+      source: STG_SOURCE,
+    });
   } catch (error) {
     console.error("Clinical assistant error", error);
     return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 });
