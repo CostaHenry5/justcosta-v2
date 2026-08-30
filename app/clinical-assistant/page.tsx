@@ -11,6 +11,9 @@ const urgentSigns = [
 ];
 
 export default function ClinicalAssistantPage() {
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [location, setLocation] = useState("");
   const [symptoms, setSymptoms] = useState("");
   const [duration, setDuration] = useState("");
   const [concerns, setConcerns] = useState("");
@@ -30,20 +33,17 @@ export default function ClinicalAssistantPage() {
     setIsLoading(true);
     setError("");
     setGuidance("");
-
     try {
       const response = await fetch("/api/clinical-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ symptoms, duration, concerns }),
+        body: JSON.stringify({ age, location, symptoms, duration, concerns }),
       });
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || "The AI service could not respond right now.");
       }
-
-      setGuidance(data.guidance);
+      setGuidance(data.guidance || "No guidance was returned. Please speak with a qualified clinician.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Something went wrong. Please try again later.");
     } finally {
@@ -52,104 +52,120 @@ export default function ClinicalAssistantPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 pt-24 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <section className="mx-auto max-w-5xl px-6 py-12 sm:py-20">
-        <Link href="/" className="inline-flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-700">
-          <ArrowLeft size={18} />
+    <main className="min-h-screen bg-slate-950 px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-white">
+          <ArrowLeft className="h-4 w-4" />
           Back to JustCosta
         </Link>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">
-              <HeartPulse size={17} />
-              Patient health visit helper
+        <section className="mt-8 rounded-3xl border border-cyan-400/20 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/30 sm:p-10">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-300">
+              <HeartPulse className="h-7 w-7" />
             </div>
-            <h1 className="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl">
-              Prepare for your next healthcare visit.
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-              Use this check-in to organise your symptoms and questions before speaking with a qualified healthcare professional.
-            </p>
-
-            <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/40">
-              <div className="flex gap-3">
-                <AlertTriangle className="mt-1 shrink-0 text-amber-600" />
-                <div>
-                  <h2 className="font-bold text-amber-900 dark:text-amber-100">Get urgent help now if you have:</h2>
-                  <ul className="mt-3 space-y-2 text-sm leading-6 text-amber-900 dark:text-amber-100">
-                    {urgentSigns.map((sign) => <li key={sign}>• {sign}</li>)}
-                  </ul>
-                  <p className="mt-3 text-sm font-semibold text-amber-900 dark:text-amber-100">
-                    Contact your local emergency service or go to the nearest emergency department.
-                  </p>
-                </div>
-              </div>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Patient health visit helper</p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Prepare for your next healthcare visit.</h1>
+              <p className="mt-4 max-w-2xl text-slate-300">Use this check-in to organise your symptoms, patient particulars, and questions before speaking with a qualified healthcare professional.</p>
             </div>
-
-            <form onSubmit={createSummary} className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
-              <div className="flex items-center gap-3">
-                <ClipboardList className="text-blue-600" />
-                <h2 className="text-2xl font-bold">Your visit notes</h2>
-              </div>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your notes are not stored by this website.</p>
-
-              <label className="mt-6 block text-sm font-bold">
-                What symptoms or concerns would you like to discuss?
-                <textarea value={symptoms} onChange={(event) => setSymptoms(event.target.value)} required rows={4} placeholder="For example: headache, cough, pain, tiredness…" className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950" />
-              </label>
-
-              <label className="mt-5 block text-sm font-bold">
-                When did this begin, and has it changed?
-                <textarea value={duration} onChange={(event) => setDuration(event.target.value)} required rows={3} placeholder="For example: started three days ago and is getting worse…" className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950" />
-              </label>
-
-              <label className="mt-5 block text-sm font-bold">
-                What questions or worries do you have?
-                <textarea value={concerns} onChange={(event) => setConcerns(event.target.value)} rows={3} placeholder="For example: What could be causing this? What should I monitor?" className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-slate-700 dark:bg-slate-950" />
-              </label>
-
-              <button type="submit" className="mt-6 rounded-xl bg-blue-600 px-5 py-3 font-bold text-white transition hover:bg-blue-700">
-                Create my visit summary
-              </button>
-            </form>
-
-            {showSummary && (
-              <section className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-6 dark:border-blue-900 dark:bg-blue-950/40">
-                <h2 className="text-xl font-bold text-blue-950 dark:text-blue-100">Summary to share with a clinician</h2>
-                <div className="mt-4 space-y-4 text-slate-700 dark:text-slate-200">
-                  <p><strong>Symptoms or concerns:</strong><br />{symptoms}</p>
-                  <p><strong>When it began / changes:</strong><br />{duration}</p>
-                  {concerns && <p><strong>Questions or worries:</strong><br />{concerns}</p>}
-                </div>
-
-                <div className="mt-6 border-t border-blue-200 pt-5 dark:border-blue-900">
-                  <h3 className="font-bold text-blue-950 dark:text-blue-100">Want general AI guidance?</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
-                    If you continue, these notes will be sent to the AI service to generate general, non-diagnostic information. This website does not save a copy.
-                  </p>
-                  <button type="button" onClick={getGuidance} disabled={isLoading} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900">
-                    {isLoading ? "Preparing guidance…" : "Get AI guidance"}
-                  </button>
-                  {error && <p className="mt-4 text-sm font-semibold text-red-700 dark:text-red-300">{error}</p>}
-                  {guidance && <div className="mt-5 rounded-xl bg-white p-5 leading-7 text-slate-800 shadow-sm dark:bg-slate-900 dark:text-slate-100 whitespace-pre-wrap">{guidance}</div>}
-                </div>
-              </section>
-            )}
           </div>
 
-          <aside className="h-fit rounded-2xl bg-slate-900 p-6 text-white">
-            <ShieldCheck className="text-blue-300" size={28} />
-            <h2 className="mt-4 text-xl font-bold">Important to know</h2>
-            <p className="mt-3 leading-7 text-slate-300">
-              This tool supports preparation for a healthcare visit. It is not a diagnosis, treatment plan, prescription, or emergency service.
-            </p>
-            <p className="mt-4 leading-7 text-slate-300">
-              A qualified clinician who can assess you directly should make medical decisions.
-            </p>
-          </aside>
-        </div>
-      </section>
+          <div className="mt-8 rounded-2xl border border-red-400/30 bg-red-500/10 p-5">
+            <div className="flex gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
+              <div>
+                <h2 className="font-semibold text-red-100">Get urgent help now if you have:</h2>
+                <ul className="mt-3 space-y-2 text-sm text-red-100/90">
+                  {urgentSigns.map((sign) => <li key={sign}>• {sign}</li>)}
+                </ul>
+                <p className="mt-3 text-sm text-red-100/90">Contact your local emergency service or go to the nearest emergency department.</p>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={createSummary} className="mt-8 space-y-5">
+            <div>
+              <h2 className="text-xl font-semibold">Patient particulars</h2>
+              <p className="mt-1 text-sm text-slate-400">These details help organise a visit summary. Your name stays on this page and is not sent to the AI.</p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block text-sm font-medium text-slate-200">
+                Patient name
+                <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Optional" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+              </label>
+              <label className="block text-sm font-medium text-slate-200">
+                Age
+                <input value={age} onChange={(event) => setAge(event.target.value)} type="number" min="0" max="130" required placeholder="For example, 32" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+              </label>
+            </div>
+
+            <label className="block text-sm font-medium text-slate-200">
+              Location
+              <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Region, district, or ward (optional)" className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+            </label>
+
+            <div className="border-t border-slate-800 pt-5">
+              <h2 className="text-xl font-semibold">Your visit notes</h2>
+              <p className="mt-1 text-sm text-slate-400">Your notes are not stored by this website.</p>
+            </div>
+
+            <label className="block text-sm font-medium text-slate-200">
+              What symptoms or concerns would you like to discuss?
+              <textarea value={symptoms} onChange={(event) => setSymptoms(event.target.value)} required rows={4} className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+            </label>
+
+            <label className="block text-sm font-medium text-slate-200">
+              When did this begin, and has it changed?
+              <textarea value={duration} onChange={(event) => setDuration(event.target.value)} required rows={3} className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+            </label>
+
+            <label className="block text-sm font-medium text-slate-200">
+              What questions or worries do you have?
+              <textarea value={concerns} onChange={(event) => setConcerns(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-400" />
+            </label>
+
+            <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300">
+              <ClipboardList className="h-5 w-5" />
+              Create my visit summary
+            </button>
+          </form>
+
+          {showSummary && (
+            <section className="mt-8 rounded-2xl border border-cyan-400/25 bg-cyan-400/5 p-6">
+              <h2 className="text-xl font-semibold text-cyan-100">Your visit summary</h2>
+              <div className="mt-4 space-y-4 text-sm text-slate-200">
+                {name && <p><span className="font-semibold text-slate-100">Patient name:</span> {name}</p>}
+                <p><span className="font-semibold text-slate-100">Age:</span> {age}</p>
+                {location && <p><span className="font-semibold text-slate-100">Location:</span> {location}</p>}
+                <p><span className="font-semibold text-slate-100">Symptoms or concerns:</span> {symptoms}</p>
+                <p><span className="font-semibold text-slate-100">When it began or changed:</span> {duration}</p>
+                {concerns && <p><span className="font-semibold text-slate-100">Questions or worries:</span> {concerns}</p>}
+              </div>
+
+              <div className="mt-6 rounded-xl border border-slate-700 bg-slate-950/70 p-4 text-sm text-slate-300">
+                <div className="flex gap-3">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+                  <p>If you choose AI guidance, only your age, broad location, symptoms, timing, and concerns will be sent to the AI service. Your name is not sent. This website does not save a copy.</p>
+                </div>
+              </div>
+
+              <button type="button" onClick={getGuidance} disabled={isLoading} className="mt-5 rounded-xl bg-cyan-400 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60">
+                {isLoading ? "Getting AI guidance..." : "Get AI guidance"}
+              </button>
+
+              {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+              {guidance && <div className="mt-5 whitespace-pre-wrap rounded-xl border border-slate-700 bg-slate-950/70 p-5 text-sm leading-6 text-slate-200">{guidance}</div>}
+            </section>
+          )}
+
+          <div className="mt-8 flex gap-3 rounded-2xl border border-slate-700 bg-slate-950/50 p-5 text-sm text-slate-300">
+            <ShieldCheck className="h-5 w-5 shrink-0 text-cyan-300" />
+            <p><span className="font-semibold text-slate-100">Important to know:</span> This tool supports preparation for a healthcare visit. It is not a diagnosis, treatment plan, prescription, or emergency service. A qualified clinician who can assess you directly should make medical decisions.</p>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
