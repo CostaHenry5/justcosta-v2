@@ -11,6 +11,7 @@ const navLinks = [
   { name: "Skills", href: "#skills" },
   { name: "Services", href: "#services" },
   { name: "Projects", href: "#projects" },
+  { name: "Clinical Assistant", href: "/clinical-assistant" },
   { name: "Contact", href: "#contact" },
 ];
 
@@ -20,8 +21,6 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/90">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-5">
-
-        {/* Logo */}
         <Link
           href="/"
           className="text-3xl font-extrabold text-blue-600 tracking-tight"
@@ -29,7 +28,6 @@ export default function Navbar() {
           JustCosta
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-10 md:flex">
           {navLinks.map((link) => (
             <a
@@ -44,20 +42,18 @@ export default function Navbar() {
           <ThemeToggle />
         </nav>
 
-        {/* Mobile Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="text-slate-800 dark:text-white md:hidden"
+          aria-label="Toggle navigation menu"
         >
           {isOpen ? <X size={30} /> : <Menu size={30} />}
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isOpen && (
         <div className="border-t border-slate-200 bg-white px-8 py-6 dark:border-slate-800 dark:bg-slate-950 md:hidden">
           <div className="flex flex-col gap-6">
-
             {navLinks.map((link) => (
               <a
                 key={link.name}
@@ -72,7 +68,6 @@ export default function Navbar() {
             <div className="pt-2">
               <ThemeToggle />
             </div>
-
           </div>
         </div>
       )}
