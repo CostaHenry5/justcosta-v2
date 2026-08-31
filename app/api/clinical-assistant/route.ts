@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const STG_SOURCE = "Tanzania Ministry of Health, Standard Treatment Guidelines and National Essential Medicines List for Tanzania Mainland, Seventh Edition (2026).";
+const STG_SOURCE = "Tanzania Ministry of Health, Standard Treatment Guidelines and National Essential Medicines List for Tanzania Mainland (2021), where relevant excerpts are available.";
 
 const CLINICAL_ASSISTANT_INSTRUCTIONS = [
   "You are a patient-facing health-visit preparation assistant.",
@@ -18,7 +18,7 @@ const CLINICAL_ASSISTANT_INSTRUCTIONS = [
   "When Kiswahili is requested, reply only in simple Kiswahili and use these exact all-capital headings instead: MUHIMU:, HATUA INAYOFUATA:, or HUDUMA YA HARAKA:.",
   "Put the most important safety advice first. Keep the tone calm and supportive.",
   "When the notes include a conversation, treat it as prior context. Answer the latest patient follow-up directly and do not repeat the entire first reply.",
-  "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT, Seventh Edition (2026).",
+  "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT (2021), where relevant excerpts are available.",
 ].join("\n");
 
 export async function POST(request: Request) {
