@@ -18,7 +18,7 @@ const projects = [
     status: "Live",
     icon: BrainCircuit,
     color: "bg-cyan-500",
-    description: "A safety-first health visit helper that organises symptoms and questions, provides cautious general guidance grounded in Tanzania treatment guidelines, and connects people to available practitioners. It is not a diagnosis, prescription, or emergency service.",
+    description: "FastMed helps people understand their next safe step when they have a health concern.\n\nIt helps a patient organise symptoms, timing, questions, age, and location into a clear visit summary. It then provides simple, cautious health guidance based on available Tanzania treatment-guideline material, highlights emergency warning signs, and helps the patient contact an available healthcare practitioner.\n\nFastMed is designed to make healthcare information easier to understand in English and Kiswahili.",
     tech: ["Patient Support", "Tanzania STG-NEMLIT", "Practitioner Access", "Health Informatics"],
     link: "/clinical-assistant",
   },
@@ -74,7 +74,7 @@ export default function Projects() {
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{project.status}</span>
                 </div>
                 <h3 className="mt-6 text-xl font-bold">{project.title}</h3>
-                <p className="mt-3 flex-1 text-sm leading-6 text-slate-700">{project.description}</p>
+                <p className="mt-3 flex-1 whitespace-pre-line text-sm leading-6 text-slate-700">{project.description}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {project.tech.map((item) => <span key={item} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{item}</span>)}
                 </div>
