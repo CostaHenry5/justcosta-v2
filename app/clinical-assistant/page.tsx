@@ -14,7 +14,7 @@ const practitioners = [
 ];
 
 export default function ClinicalAssistantPage() {
-  const [name,setName]=useState(""); const [age,setAge]=useState(""); const [location,setLocation]=useState("");
+  const [language,setLanguage]=useState<"en"|"sw">("en"); const [name,setName]=useState(""); const [age,setAge]=useState(""); const [location,setLocation]=useState("");
   const [symptoms,setSymptoms]=useState(""); const [duration,setDuration]=useState(""); const [concerns,setConcerns]=useState("");
   const [showSummary,setShowSummary]=useState(false); const [guidance,setGuidance]=useState(""); const [followUp,setFollowUp]=useState(""); const [conversation,setConversation]=useState<string[]>([]); const [error,setError]=useState(""); const [isLoading,setIsLoading]=useState(false);
   function createSummary(event: FormEvent<HTMLFormElement>){event.preventDefault();setShowSummary(true);setGuidance("");setError("");}
@@ -22,7 +22,7 @@ export default function ClinicalAssistantPage() {
     setIsLoading(true);setError("");
     try{
       const conversationContext=[guidance ? "AI initial guidance: "+guidance : "",...conversation.slice(-6)].filter(Boolean).join("\n");
-      const response=await fetch("/api/clinical-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({age,location,symptoms,duration,concerns:message ? concerns+"\n\nConversation so far:\n"+conversationContext+"\n\nPatient follow-up question: "+message : concerns})});
+      const response=await fetch("/api/clinical-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({language,age,location,symptoms,duration,concerns:message ? concerns+"\n\nConversation so far:\n"+conversationContext+"\n\nPatient follow-up question: "+message : concerns})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"THE AI SERVICE COULD NOT RESPOND RIGHT NOW.");
       const answer=data.guidance||"NO GUIDANCE WAS RETURNED. PLEASE SPEAK WITH A QUALIFIED CLINICIAN.";
@@ -30,11 +30,12 @@ export default function ClinicalAssistantPage() {
     }catch(e){setError(e instanceof Error?e.message:"SOMETHING WENT WRONG. PLEASE TRY AGAIN LATER.");}finally{setIsLoading(false);}
   }
   const input="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100";
-  function formatGuidance(text:string){return text.replace(/\*/g,"").split("\n").filter(Boolean).map((line,index)=>{const important=/^(IMPORTANT|NEXT STEP|URGENT HELP):/i.test(line.trim());return <p key={index} className={important?"font-extrabold text-cyan-900":"font-medium"}>{line}</p>;});}
+  function formatGuidance(text:string){return text.replace(/\*/g,"").split("\n").filter(Boolean).map((line,index)=>{const important=/^(IMPORTANT|NEXT STEP|URGENT HELP|MUHIMU|HATUA INAYOFUATA|HUDUMA YA HARAKA):/i.test(line.trim());return <p key={index} className={important?"font-extrabold text-cyan-900":"font-medium"}>{line}</p>;});}
   return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6"><div className="mx-auto max-w-4xl">
     <Link href="/" className="inline-flex items-center gap-2 font-semibold text-slate-700 hover:text-cyan-700"><ArrowLeft className="h-4 w-4"/>BACK TO JUSTCOSTA</Link>
     <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-10">
       <div className="flex gap-5"><div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700"><HeartPulse className="h-7 w-7"/></div><div><p className="font-bold uppercase tracking-[.18em] text-cyan-700">PATIENT HEALTH VISIT HELPER</p><h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">Prepare for your healthcare visit.</h1><p className="mt-3 text-slate-600">Organise your particulars, symptoms and questions before speaking with a qualified healthcare professional.</p></div></div>
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-cyan-200 bg-cyan-50 p-4"><p className="font-bold text-cyan-950">AI RESPONSE LANGUAGE / LUGHA YA MAJIBU YA AI:</p><button type="button" onClick={()=>setLanguage("en")} className={language==="en"?"rounded-lg bg-cyan-700 px-4 py-2 font-bold text-white":"rounded-lg border border-cyan-300 bg-white px-4 py-2 font-bold text-cyan-900"}>English</button><button type="button" onClick={()=>setLanguage("sw")} className={language==="sw"?"rounded-lg bg-cyan-700 px-4 py-2 font-bold text-white":"rounded-lg border border-cyan-300 bg-white px-4 py-2 font-bold text-cyan-900"}>Kiswahili</button><p className="text-sm font-medium text-slate-700">{language==="sw"?"AI itajibu kwa Kiswahili rahisi.":"AI will reply in simple English."}</p></div>
       <div className="mt-8 rounded-2xl border-2 border-red-300 bg-red-50 p-5"><div className="flex gap-3"><AlertTriangle className="mt-1 h-6 w-6 shrink-0 text-red-700"/><div><h2 className="font-extrabold uppercase text-red-900">GET URGENT HELP NOW IF YOU HAVE:</h2><ul className="mt-3 space-y-2 font-semibold text-red-900">{urgentSigns.map(x=><li key={x}>• {x}</li>)}</ul><p className="mt-3 font-extrabold text-red-900">GO TO THE NEAREST EMERGENCY DEPARTMENT OR CONTACT YOUR LOCAL EMERGENCY SERVICE.</p></div></div></div>
       <form onSubmit={createSummary} className="mt-8 space-y-5"><div><h2 className="text-xl font-extrabold uppercase">Patient particulars</h2><p className="mt-1 font-semibold text-slate-600">YOUR NAME STAYS ON THIS PAGE AND IS NOT SENT TO THE AI.</p></div>
         <div className="grid gap-5 sm:grid-cols-2"><label className="font-bold">PATIENT NAME<input value={name} onChange={e=>setName(e.target.value)} placeholder="Optional" className={input}/></label><label className="font-bold">AGE<input value={age} onChange={e=>setAge(e.target.value)} type="number" min="0" max="130" required className={input}/></label></div>

@@ -15,6 +15,7 @@ const CLINICAL_ASSISTANT_INSTRUCTIONS = [
   "Use simple everyday language. Keep the response under 140 words.",
   "Do not use Markdown, asterisks, bullet symbols, or numbered lists.",
   "Use at most three short sections, each starting on a new line with one of these exact all-capital headings: IMPORTANT:, NEXT STEP:, or URGENT HELP:.",
+  "When Kiswahili is requested, reply only in simple Kiswahili and use these exact all-capital headings instead: MUHIMU:, HATUA INAYOFUATA:, or HUDUMA YA HARAKA:.",
   "Put the most important safety advice first. Keep the tone calm and supportive.",
   "When the notes include a conversation, treat it as prior context. Answer the latest patient follow-up directly and do not repeat the entire first reply.",
   "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT, Seventh Edition (2026).",
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const language = body.language === "sw" ? "Kiswahili" : "English";
     const age = typeof body.age === "string" ? body.age.trim() : "";
     const location = typeof body.location === "string" ? body.location.trim() : "";
     const symptoms = typeof body.symptoms === "string" ? body.symptoms.trim() : "";
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
         store: false,
         max_output_tokens: 450,
         instructions: CLINICAL_ASSISTANT_INSTRUCTIONS,
-        input: ["Patient notes:", searchQuery, "", "Tanzania guideline excerpts:", guidelineExcerpts || "No clearly relevant excerpts were found. Do not guess."].join("\n"),
+        input: ["Reply language: " + language, "", "Patient notes:", searchQuery, "", "Tanzania guideline excerpts:", guidelineExcerpts || "No clearly relevant excerpts were found. Do not guess."].join("\n"),
       }),
     });
     const data = await response.json();
