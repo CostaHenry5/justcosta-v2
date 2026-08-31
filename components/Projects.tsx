@@ -56,7 +56,7 @@ export default function Projects() {
     <section id="projects" className="bg-white py-24 text-slate-900">
       <div className="mx-auto max-w-7xl px-6">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">Projects</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">Projects</p>
           <h2 className="mt-3 text-4xl font-bold sm:text-5xl">Ideas built for people and impact.</h2>
           <p className="mt-4 text-slate-700">Explore selected work across technology, healthcare and business.</p>
         </motion.div>
@@ -74,12 +74,12 @@ export default function Projects() {
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{project.status}</span>
                 </div>
                 <h3 className="mt-6 text-xl font-bold">{project.title}</h3>
-                <p className="mt-3 flex-1 text-sm leading-6 text-slate-300">{project.description}</p>
+                <p className="mt-3 flex-1 text-sm leading-6 text-slate-700">{project.description}</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {project.tech.map((item) => <span key={item} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{item}</span>)}
                 </div>
                 {isAvailable ? (
-                  <a href={project.link} target={project.link.startsWith("http") ? "_blank" : undefined} rel={project.link.startsWith("http") ? "noreferrer" : undefined} className="mt-6 inline-flex items-center gap-2 font-semibold text-cyan-300 hover:text-cyan-200">
+                  <a href={project.link} target={project.link.startsWith("http") ? "_blank" : undefined} rel={project.link.startsWith("http") ? "noreferrer" : undefined} className="mt-6 inline-flex items-center gap-2 font-semibold text-cyan-700 hover:text-cyan-900">
                     View project <ExternalLink className="h-4 w-4" />
                   </a>
                 ) : (
