@@ -7,7 +7,7 @@ const urgentSigns = ["Trouble breathing, severe chest pain, or blue/grey lips","
 const practitioners = [
   {name:"Dr Emil Mgwami",role:"Medical Doctor (MD)",phone:"+255623555127"},
   {name:"Richard Kinyaha",role:"Dentist",phone:"+255620607399",image:"/practitioners/richard-kinyaha.jpg"},
-  {name:"Moses Masika",role:"Medical Laboratory Professional",phone:"+255734717630"},
+  {name:"Moses Masika",role:"Medical Laboratory Professional",phone:"+255734717630",image:"/practitioners/moses-masika.jpg"},
   {name:"Mussa Kihayile",role:"Registered Nurse (RN)",phone:"+255778652916"},
   {name:"Sudi Zaidi",role:"Dentist (DDS)",phone:"+255679279037",image:"/practitioners/sudi-zaidi.png"},
   {name:"Rashid",role:"Medical Doctor (MD)",phone:"+255622269916",image:"/practitioners/rashid.jpg"},
