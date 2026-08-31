@@ -14,7 +14,7 @@ const projects = [
     link: "https://www.instagram.com/iphonesmwenge/",
   },
   {
-    title: "FastMed",
+    title: "FastMED",
     status: "Live",
     icon: BrainCircuit,
     color: "bg-cyan-500",
