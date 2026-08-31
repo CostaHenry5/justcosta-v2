@@ -87,7 +87,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.error("OpenAI request failed", data);
-      return NextResponse.json({ error: "The AI service could not respond right now. Please try again later." }, { status: 502 });
+      return NextResponse.json({ error: "FastMed guidance could not respond right now. Please try again later." }, { status: 502 });
     }
 
     const guidance = Array.isArray(data.output)
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
 
     if (!guidance) {
       console.error("OpenAI response did not contain output text", data);
-      return NextResponse.json({ error: "The AI service returned no guidance. Please try again later." }, { status: 502 });
+      return NextResponse.json({ error: "FastMed returned no guidance. Please try again later." }, { status: 502 });
     }
 
     return NextResponse.json({ guidance: guidance.replace(/\*/g, ""), source: STG_SOURCE });

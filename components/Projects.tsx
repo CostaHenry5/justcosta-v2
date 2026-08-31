@@ -14,12 +14,12 @@ const projects = [
     link: "https://www.instagram.com/iphonesmwenge/",
   },
   {
-    title: "AI Clinical Assistant",
+    title: "FastMed",
     status: "Live",
     icon: BrainCircuit,
     color: "bg-cyan-500",
-    description: "A patient-facing health visit helper that organises symptoms and questions, then provides cautious general guidance grounded in Tanzania treatment guidelines. It is not a diagnosis, prescription, or emergency service.",
-    tech: ["Patient Support", "Tanzania STG-NEMLIT", "AI", "Health Informatics"],
+    description: "A safety-first health visit helper that organises symptoms and questions, provides cautious general guidance grounded in Tanzania treatment guidelines, and connects people to available practitioners. It is not a diagnosis, prescription, or emergency service.",
+    tech: ["Patient Support", "Tanzania STG-NEMLIT", "Practitioner Access", "Health Informatics"],
     link: "/clinical-assistant",
   },
   {
