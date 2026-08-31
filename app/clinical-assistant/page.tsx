@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, ClipboardList, HeartPulse, ShieldCheck } from "lucide-react";
 
 const urgentSigns = ["Trouble breathing, severe chest pain, or blue/grey lips","Fainting, a new seizure, confusion, or sudden weakness on one side","Severe bleeding, a serious injury, or thoughts of harming yourself or someone else"];
-const practitioners = [
+type PractitionerCard = { name: string; role: string; phone: string; image?: string };
+const defaultPractitioners: PractitionerCard[] = [
   {name:"Dr Emil Mgwami",role:"Medical Doctor (MD)",phone:"+255623555127"},
   {name:"Richard Kinyaha",role:"Dentist",phone:"+255620607399",image:"/practitioners/richard-kinyaha.jpg"},
   {name:"Moses Masika",role:"Medical Laboratory Professional",phone:"+255734717630",image:"/practitioners/moses-masika.jpg"},
@@ -21,9 +22,11 @@ const practitionerLanguages = "Kiswahili and English";
 const practitionerHours = "Monday–Saturday, 08:00–17:00";
 
 export default function ClinicalAssistantPage() {
+  const [practitioners,setPractitioners]=useState<PractitionerCard[]>(defaultPractitioners);
   const [language,setLanguage]=useState<"en"|"sw">("en"); const [name,setName]=useState(""); const [age,setAge]=useState(""); const [location,setLocation]=useState("");
   const [symptoms,setSymptoms]=useState(""); const [duration,setDuration]=useState(""); const [concerns,setConcerns]=useState("");
   const [showSummary,setShowSummary]=useState(false); const [guidance,setGuidance]=useState(""); const [followUp,setFollowUp]=useState(""); const [conversation,setConversation]=useState<string[]>([]); const [error,setError]=useState(""); const [isLoading,setIsLoading]=useState(false);
+  useEffect(()=>{fetch("/api/practitioners").then(response=>response.json()).then(data=>{if(Array.isArray(data.practitioners)&&data.practitioners.length){setPractitioners(data.practitioners.map((item:{name:string;role:string;phone:string;image_url?:string|null})=>({name:item.name,role:item.role,phone:item.phone,image:item.image_url||undefined})));}}).catch(()=>{});},[]);
   function createSummary(event: FormEvent<HTMLFormElement>){event.preventDefault();setShowSummary(true);setGuidance("");setError("");}
   function summaryText(){return ["JUSTCOSTA VISIT SUMMARY",name ? "PATIENT NAME: "+name : "", "AGE: "+age,location ? "LOCATION: "+location : "","SYMPTOMS: "+symptoms,"WHEN IT BEGAN OR CHANGED: "+duration,concerns ? "QUESTIONS OR WORRIES: "+concerns : ""].filter(Boolean).join("\n\n");}
   function downloadSummary(){const link=document.createElement("a");link.href=URL.createObjectURL(new Blob([summaryText()],{type:"text/plain"}));link.download="justcosta-visit-summary.txt";link.click();URL.revokeObjectURL(link.href);}
