@@ -16,6 +16,7 @@ const CLINICAL_ASSISTANT_INSTRUCTIONS = [
   "Do not use Markdown, asterisks, bullet symbols, or numbered lists.",
   "Use at most three short sections, each starting on a new line with one of these exact all-capital headings: IMPORTANT:, NEXT STEP:, or URGENT HELP:.",
   "Put the most important safety advice first. Keep the tone calm and supportive.",
+  "When the notes include a conversation, treat it as prior context. Answer the latest patient follow-up directly and do not repeat the entire first reply.",
   "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT, Seventh Edition (2026).",
 ].join("\n");
 

@@ -10,7 +10,17 @@ export default function ClinicalAssistantPage() {
   const [symptoms,setSymptoms]=useState(""); const [duration,setDuration]=useState(""); const [concerns,setConcerns]=useState("");
   const [showSummary,setShowSummary]=useState(false); const [guidance,setGuidance]=useState(""); const [followUp,setFollowUp]=useState(""); const [conversation,setConversation]=useState<string[]>([]); const [error,setError]=useState(""); const [isLoading,setIsLoading]=useState(false);
   function createSummary(event: FormEvent<HTMLFormElement>){event.preventDefault();setShowSummary(true);setGuidance("");setError("");}
-  async function getGuidance(message = ""){setIsLoading(true);setError("");try{const response=await fetch("/api/clinical-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({age,location,symptoms,duration,concerns: message ? concerns + "\\nConversation so far:\\n" + conversation.slice(-6).join("\\n") + "\\nFollow-up question: " + message : concerns})});const data=await response.json();if(!response.ok) throw new Error(data.error||"THE AI SERVICE COULD NOT RESPOND RIGHT NOW.");const answer=data.guidance||"NO GUIDANCE WAS RETURNED. PLEASE SPEAK WITH A QUALIFIED CLINICIAN."; if(message){setConversation(items=>[...items,"You: "+message,"AI: "+answer]);setFollowUp("");}else{setGuidance(answer);setConversation([]);}}catch(e){setError(e instanceof Error?e.message:"SOMETHING WENT WRONG. PLEASE TRY AGAIN LATER.");}finally{setIsLoading(false);}}
+  async function getGuidance(message = ""){
+    setIsLoading(true);setError("");
+    try{
+      const conversationContext=[guidance ? "AI initial guidance: "+guidance : "",...conversation.slice(-6)].filter(Boolean).join("\n");
+      const response=await fetch("/api/clinical-assistant",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({age,location,symptoms,duration,concerns:message ? concerns+"\n\nConversation so far:\n"+conversationContext+"\n\nPatient follow-up question: "+message : concerns})});
+      const data=await response.json();
+      if(!response.ok) throw new Error(data.error||"THE AI SERVICE COULD NOT RESPOND RIGHT NOW.");
+      const answer=data.guidance||"NO GUIDANCE WAS RETURNED. PLEASE SPEAK WITH A QUALIFIED CLINICIAN.";
+      if(message){setConversation(items=>[...items,"You: "+message,"AI: "+answer]);setFollowUp("");}else{setGuidance(answer);setConversation([]);}
+    }catch(e){setError(e instanceof Error?e.message:"SOMETHING WENT WRONG. PLEASE TRY AGAIN LATER.");}finally{setIsLoading(false);}
+  }
   const input="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100";
   function formatGuidance(text:string){return text.replace(/\*/g,"").split("\n").filter(Boolean).map((line,index)=>{const important=/^(IMPORTANT|NEXT STEP|URGENT HELP):/i.test(line.trim());return <p key={index} className={important?"font-extrabold underline decoration-2 decoration-cyan-500 underline-offset-4":"font-medium"}>{line}</p>;});}
   return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6"><div className="mx-auto max-w-4xl">
