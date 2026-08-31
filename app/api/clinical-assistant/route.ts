@@ -12,7 +12,10 @@ const CLINICAL_ASSISTANT_INSTRUCTIONS = [
   "For non-emergency concerns, advise care from a qualified clinician at the nearest appropriate hospital or health facility.",
   "Do not offer medication changes, treatment instructions, or unsupported claims.",
   "If excerpts are not clearly relevant, say so and advise speaking with a clinician instead of guessing.",
-  "Keep the response concise, calm, and supportive.",
+  "Use simple everyday language. Keep the response under 140 words.",
+  "Do not use Markdown, asterisks, bullet symbols, or numbered lists.",
+  "Use at most three short sections, each starting on a new line with one of these exact all-capital headings: IMPORTANT:, NEXT STEP:, or URGENT HELP:.",
+  "Put the most important safety advice first. Keep the tone calm and supportive.",
   "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT, Seventh Edition (2026).",
 ].join("\n");
 
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "The AI service returned no guidance. Please try again later." }, { status: 502 });
     }
 
-    return NextResponse.json({ guidance, source: STG_SOURCE });
+    return NextResponse.json({ guidance: guidance.replace(/\*/g, ""), source: STG_SOURCE });
   } catch (error) {
     console.error("Clinical assistant error", error);
     return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 });
