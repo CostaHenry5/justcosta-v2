@@ -30,7 +30,7 @@ export default function ClinicalAssistantPage() {
     }catch(e){setError(e instanceof Error?e.message:"SOMETHING WENT WRONG. PLEASE TRY AGAIN LATER.");}finally{setIsLoading(false);}
   }
   const input="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100";
-  function formatGuidance(text:string){return text.replace(/\*/g,"").split("\n").filter(Boolean).map((line,index)=>{const important=/^(IMPORTANT|NEXT STEP|URGENT HELP):/i.test(line.trim());return <p key={index} className={important?"font-extrabold underline decoration-2 decoration-cyan-500 underline-offset-4":"font-medium"}>{line}</p>;});}
+  function formatGuidance(text:string){return text.replace(/\*/g,"").split("\n").filter(Boolean).map((line,index)=>{const important=/^(IMPORTANT|NEXT STEP|URGENT HELP):/i.test(line.trim());return <p key={index} className={important?"font-extrabold text-cyan-900":"font-medium"}>{line}</p>;});}
   return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:px-6"><div className="mx-auto max-w-4xl">
     <Link href="/" className="inline-flex items-center gap-2 font-semibold text-slate-700 hover:text-cyan-700"><ArrowLeft className="h-4 w-4"/>BACK TO JUSTCOSTA</Link>
     <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60 sm:p-10">
