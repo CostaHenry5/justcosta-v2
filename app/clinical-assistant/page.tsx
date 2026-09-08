@@ -42,13 +42,39 @@ const healthLibrary = [
 ];
 
 const redFlagRules = [
-  { label: "chest pain or pressure", pattern: /\b(chest pain|chest pressure|tightness in (my |the )?chest)\b/i },
-  { label: "difficulty breathing", pattern: /\b(can'?t breathe|cannot breathe|difficulty breathing|shortness of breath|struggling to breathe)\b/i },
-  { label: "loss of consciousness or seizure", pattern: /\b(unconscious|not waking|passed out|fainted|seizure|convulsion)\b/i },
-  { label: "stroke warning signs", pattern: /\b(face droop|one[- ]sided weakness|sudden weakness|slurred speech|cannot speak)\b/i },
-  { label: "severe bleeding", pattern: /\b(severe bleeding|bleeding heavily|won'?t stop bleeding|vomiting blood|coughing blood)\b/i },
-  { label: "a severe allergic reaction", pattern: /\b(swollen tongue|throat swelling|severe allergic reaction|anaphylaxis)\b/i },
-  { label: "immediate self-harm risk", pattern: /\b(kill myself|suicide|end my life|hurt myself)\b/i },
+  {
+    label: "chest pain or pressure",
+    pattern: /\b(chest pain|chest pressure|tightness in (my |the )?chest)\b/i,
+  },
+  {
+    label: "difficulty breathing",
+    pattern:
+      /\b(can'?t breathe|cannot breathe|difficulty breathing|shortness of breath|struggling to breathe)\b/i,
+  },
+  {
+    label: "loss of consciousness or seizure",
+    pattern:
+      /\b(unconscious|not waking|passed out|fainted|seizure|convulsion)\b/i,
+  },
+  {
+    label: "stroke warning signs",
+    pattern:
+      /\b(face droop|one[- ]sided weakness|sudden weakness|slurred speech|cannot speak)\b/i,
+  },
+  {
+    label: "severe bleeding",
+    pattern:
+      /\b(severe bleeding|bleeding heavily|won'?t stop bleeding|vomiting blood|coughing blood)\b/i,
+  },
+  {
+    label: "a severe allergic reaction",
+    pattern:
+      /\b(swollen tongue|throat swelling|severe allergic reaction|anaphylaxis)\b/i,
+  },
+  {
+    label: "immediate self-harm risk",
+    pattern: /\b(kill myself|suicide|end my life|hurt myself)\b/i,
+  },
 ];
 
 export default function ClinicalAssistantPage() {
@@ -92,14 +118,8 @@ export default function ClinicalAssistantPage() {
     window.localStorage.setItem("fastmed-conversations", JSON.stringify(next));
   }
 
-  async function sendContent(content: string) {
-    if (!content || loading) return;
-    const nextMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content },
-    ];
-    setMessages(nextMessages);
-    setDraft("");
+  async function requestReply(nextMessages: ChatMessage[]) {
+    if (!nextMessages.length || loading) return;
     setLoading(true);
     setError("");
     abortRef.current = new AbortController();
@@ -133,10 +153,26 @@ export default function ClinicalAssistantPage() {
     }
   }
 
+  async function sendContent(content: string) {
+    if (!content || loading) return;
+    const nextMessages: ChatMessage[] = [
+      ...messages,
+      { role: "user", content },
+    ];
+    setMessages(nextMessages);
+    setDraft("");
+    await requestReply(nextMessages);
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const content = draft.trim();
     if (!content) return;
+    if (!messages.length && !particularsSubmitted) {
+      setMessages([{ role: "user", content }]);
+      setDraft("");
+      return;
+    }
     await sendContent(content);
   }
 
@@ -154,7 +190,11 @@ export default function ClinicalAssistantPage() {
     setParticularsSubmitted(true);
     await sendContent(clinicalMessage);
     window.setTimeout(
-      () => guidanceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      () =>
+        guidanceRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        }),
       100,
     );
   }
@@ -221,7 +261,9 @@ export default function ClinicalAssistantPage() {
     draft,
     patientSymptoms,
     patientConcerns,
-    ...messages.filter((message) => message.role === "user").map((message) => message.content),
+    ...messages
+      .filter((message) => message.role === "user")
+      .map((message) => message.content),
   ].join(" ");
   const redFlags = redFlagRules
     .filter((rule) => rule.pattern.test(safetyText))
@@ -283,25 +325,43 @@ export default function ClinicalAssistantPage() {
               Kiswahili
             </button>
           </div>
-          <p className="mt-2 text-sm font-semibold text-cyan-900" aria-live="polite">
+          <p
+            className="mt-2 text-sm font-semibold text-cyan-900"
+            aria-live="polite"
+          >
             {language === "sw"
               ? "Umechagua Kiswahili. Majibu ya FastMed AI yatakuwa kwa Kiswahili, si lebo za ukurasa pekee."
               : "You selected English. FastMed AI replies will be in English, not only the page labels."}
           </p>
         </header>
         {redFlags.length > 0 && (
-          <aside role="alert" className="order-3 mt-6 rounded-2xl border-2 border-red-600 bg-red-50 p-5 text-red-950 shadow-sm">
+          <aside
+            role="alert"
+            className="order-1 mt-6 rounded-2xl border-2 border-red-600 bg-red-50 p-5 text-red-950 shadow-sm"
+          >
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-6 w-6 shrink-0" aria-hidden="true" />
+              <AlertTriangle
+                className="mt-0.5 h-6 w-6 shrink-0"
+                aria-hidden="true"
+              />
               <div>
                 <h2 className="text-lg font-extrabold">Urgent safety alert</h2>
-                <p className="mt-1 font-semibold">Our independent keyword safety check noticed words that may describe {redFlags.join(", ")}.</p>
-                <p className="mt-2">If this is happening now, do not wait for FastMed or a practitioner reply. Go to the nearest emergency department or contact local emergency services now. This automatic check is not a diagnosis and may flag wording that does not apply to you.</p>
+                <p className="mt-1 font-semibold">
+                  Our independent keyword safety check noticed words that may
+                  describe {redFlags.join(", ")}.
+                </p>
+                <p className="mt-2">
+                  If this is happening now, do not wait for FastMed or a
+                  practitioner reply. Go to the nearest emergency department or
+                  contact local emergency services now. This automatic check is
+                  not a diagnosis and may flag wording that does not apply to
+                  you.
+                </p>
               </div>
             </div>
           </aside>
         )}
-        {particularsSubmitted && (
+        {particularsSubmitted && patientAge && patientSymptoms && (
           <section className="order-2 mt-6 rounded-3xl border-2 border-cyan-200 bg-cyan-50 p-5 sm:p-7">
             <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">
               Patient summary
@@ -353,15 +413,9 @@ export default function ClinicalAssistantPage() {
             </div>
           </section>
         )}
-        {particularsSubmitted && (
-          <div className="order-3 mt-6 flex items-center gap-3">
-            <Stethoscope className="h-6 w-6 text-cyan-700" aria-hidden="true" />
-            <h2 className="text-2xl font-extrabold">FastMed guidance</h2>
-          </div>
-        )}
         <section
           ref={guidanceRef}
-          className="order-4 mt-6 scroll-mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+          className="order-1 mt-6 scroll-mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           aria-label="FastMed conversation"
         >
           <div
@@ -375,10 +429,14 @@ export default function ClinicalAssistantPage() {
                   aria-hidden="true"
                 />
                 <div>
-                  <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-700">Step 2 of 2</p>
+                  <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-700">
+                    Start here
+                  </p>
                   <h2 className="font-extrabold">Tell us what is going on</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Continue from the particulars above, describe how you feel directly, or ask another question.
+                    Describe how you feel, when it started, or ask a question.
+                    FastMed will then request any particulars needed for safer
+                    guidance in this same conversation.
                   </p>
                 </div>
               </div>
@@ -420,6 +478,120 @@ export default function ClinicalAssistantPage() {
                   : message.content}
               </div>
             ))}
+            {messages.length > 0 && !particularsSubmitted && !loading && (
+              <div className="rounded-2xl border-2 border-cyan-200 bg-cyan-50 p-5 sm:p-6">
+                <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">
+                  A few details for safer guidance
+                </p>
+                <h2 className="mt-1 text-xl font-extrabold">
+                  Tell FastMed about the patient
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Your first message started this conversation. Add these
+                  particulars and FastMed will use both together. Your name
+                  stays on this device and is not sent to the AI service.
+                </p>
+                <form
+                  onSubmit={submitParticulars}
+                  className="mt-5 grid gap-4 sm:grid-cols-2"
+                >
+                  <label className="font-bold">
+                    Patient name{" "}
+                    <span className="font-normal text-slate-500">
+                      (optional)
+                    </span>
+                    <input
+                      value={patientName}
+                      onChange={(event) => setPatientName(event.target.value)}
+                      className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4"
+                    />
+                  </label>
+                  <label className="font-bold">
+                    Age
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      max="130"
+                      value={patientAge}
+                      onChange={(event) => setPatientAge(event.target.value)}
+                      className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4"
+                    />
+                  </label>
+                  <label className="font-bold sm:col-span-2">
+                    Location{" "}
+                    <span className="font-normal text-slate-500">
+                      (optional)
+                    </span>
+                    <input
+                      value={patientLocation}
+                      onChange={(event) =>
+                        setPatientLocation(event.target.value)
+                      }
+                      placeholder="Region, district, or ward"
+                      className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-4"
+                    />
+                  </label>
+                  <label className="font-bold sm:col-span-2">
+                    Symptoms or health concern
+                    <textarea
+                      required
+                      rows={3}
+                      value={patientSymptoms}
+                      onChange={(event) =>
+                        setPatientSymptoms(event.target.value)
+                      }
+                      placeholder="Add details not included in your first message"
+                      className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-4"
+                    />
+                  </label>
+                  <label className="font-bold sm:col-span-2">
+                    When did it begin, and has it changed?
+                    <textarea
+                      required
+                      rows={2}
+                      value={symptomDuration}
+                      onChange={(event) =>
+                        setSymptomDuration(event.target.value)
+                      }
+                      className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-4"
+                    />
+                  </label>
+                  <label className="font-bold sm:col-span-2">
+                    Questions or worries{" "}
+                    <span className="font-normal text-slate-500">
+                      (optional)
+                    </span>
+                    <textarea
+                      rows={2}
+                      value={patientConcerns}
+                      onChange={(event) =>
+                        setPatientConcerns(event.target.value)
+                      }
+                      className="mt-2 w-full rounded-xl border border-slate-300 bg-white p-4"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-3 sm:col-span-2">
+                    <button
+                      disabled={loading}
+                      className="min-h-12 rounded-xl bg-cyan-700 px-5 py-3 font-extrabold text-white disabled:opacity-50"
+                    >
+                      Get guidance using these details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setParticularsSubmitted(true);
+                        void requestReply(messages);
+                      }}
+                      className="min-h-12 rounded-xl border border-cyan-700 bg-white px-5 py-3 font-bold text-cyan-800"
+                    >
+                      Skip optional particulars
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
             {loading && (
               <div className="mr-auto rounded-2xl bg-slate-100 p-4 text-slate-600">
                 FastMed is thinking…
@@ -429,11 +601,35 @@ export default function ClinicalAssistantPage() {
               <div className="max-w-3xl space-y-4">
                 <AITransparencyNotice />
                 <div className="rounded-2xl border border-cyan-200 bg-cyan-50 p-4">
-                  <p className="font-extrabold text-cyan-950">What would you like to do next?</p>
+                  <p className="font-extrabold text-cyan-950">
+                    What would you like to do next?
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => document.getElementById("practitioners")?.scrollIntoView({ behavior: "smooth" })} className="min-h-11 rounded-xl bg-cyan-700 px-4 py-2 font-bold text-white">Find a practitioner</button>
-                    <button type="button" onClick={downloadVisitSummary} className="min-h-11 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800">Save guidance to share</button>
-                    <button type="button" onClick={printVisitSummary} className="min-h-11 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800">Print for a doctor</button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        document
+                          .getElementById("practitioners")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      }
+                      className="min-h-11 rounded-xl bg-cyan-700 px-4 py-2 font-bold text-white"
+                    >
+                      Find a practitioner
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadVisitSummary}
+                      className="min-h-11 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
+                    >
+                      Save guidance to share
+                    </button>
+                    <button
+                      type="button"
+                      onClick={printVisitSummary}
+                      className="min-h-11 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
+                    >
+                      Print for a doctor
+                    </button>
                   </div>
                 </div>
               </div>
@@ -479,8 +675,16 @@ export default function ClinicalAssistantPage() {
               </button>
             </div>
             <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-900">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <p>FastMed is not an emergency service. For severe breathing difficulty, chest pain, unconsciousness, stroke signs, severe bleeding, or immediate danger, seek emergency care now and do not wait for a reply.</p>
+              <AlertTriangle
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
+              <p>
+                FastMed is not an emergency service. For severe breathing
+                difficulty, chest pain, unconsciousness, stroke signs, severe
+                bleeding, or immediate danger, seek emergency care now and do
+                not wait for a reply.
+              </p>
             </div>
             {error && (
               <p className="mt-3 font-semibold text-red-700">{error}</p>
@@ -522,97 +726,6 @@ export default function ClinicalAssistantPage() {
                 )}
               </div>
             </div>
-          </form>
-        </section>
-        <section className="order-1 mt-6 rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="flex items-start gap-3">
-            <Stethoscope
-              className="mt-1 h-6 w-6 text-cyan-700"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-700">Step 1 of 2</p>
-              <h2 className="text-2xl font-extrabold">Start with your patient particulars</h2>
-              <p className="mt-1 text-slate-600">
-                Enter the health details below for a structured FastMed
-                response. Your answers begin the same conversation shown below; after the guidance, continue naturally in Step 2. Your name stays on this device and is not sent to the AI service.
-              </p>
-            </div>
-          </div>
-          <form
-            onSubmit={submitParticulars}
-            className="mt-5 grid gap-4 sm:grid-cols-2"
-          >
-            <label className="font-bold">
-              Patient name{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <input
-                value={patientName}
-                onChange={(event) => setPatientName(event.target.value)}
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold">
-              Age
-              <input
-                required
-                type="number"
-                min="0"
-                max="130"
-                value={patientAge}
-                onChange={(event) => setPatientAge(event.target.value)}
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Location{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <input
-                value={patientLocation}
-                onChange={(event) => setPatientLocation(event.target.value)}
-                placeholder="Region, district, or ward"
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Symptoms or health concern
-              <textarea
-                required
-                rows={4}
-                value={patientSymptoms}
-                onChange={(event) => setPatientSymptoms(event.target.value)}
-                placeholder="Describe what you are feeling"
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              When did it begin, and has it changed?
-              <textarea
-                required
-                rows={3}
-                value={symptomDuration}
-                onChange={(event) => setSymptomDuration(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Questions or worries{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <textarea
-                rows={3}
-                value={patientConcerns}
-                onChange={(event) => setPatientConcerns(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <button
-              disabled={loading}
-              className="min-h-12 rounded-xl bg-cyan-700 px-5 py-3 font-extrabold text-white disabled:opacity-50 sm:col-span-2"
-            >
-              {loading
-                ? "Getting health guidance…"
-                : "Get FastMed health guidance"}
-            </button>
           </form>
         </section>
         {savedConversations.length > 0 && (

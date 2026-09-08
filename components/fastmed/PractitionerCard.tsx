@@ -70,6 +70,13 @@ export function PractitionerCard({
           {practitioner.specialty && (
             <p className="text-sm text-slate-600">{practitioner.specialty}</p>
           )}
+          {practitioner.verification_status === "verified" && (
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              FastMed checked the professional registration details and
+              public-listing consent. This does not guarantee care quality or
+              live availability.
+            </p>
+          )}
         </div>
       </div>
       <div className="mt-4 space-y-2 text-sm text-slate-700">
@@ -99,12 +106,15 @@ export function PractitionerCard({
               : practitioner.availability === "busy"
                 ? "Busy today"
                 : "Not available today"}
+          </span>{" "}
+          <span className="text-xs text-slate-500">
+            ·{" "}
+            {practitioner.updated_at
+              ? `Last updated ${statusTime} EAT.`
+              : `Directory checked ${directoryCheckedAt} EAT; status update time not supplied.`}
           </span>
         </p>
         <p className="text-xs text-slate-500">
-          {practitioner.updated_at
-            ? `Status last updated: ${statusTime} EAT.`
-            : `Directory checked: ${directoryCheckedAt} EAT; practitioner status update time not supplied.`}{" "}
           Confirm by phone before travel.
         </p>
         {practitioner.show_public_phone && practitioner.phone && (

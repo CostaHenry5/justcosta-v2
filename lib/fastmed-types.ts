@@ -1,4 +1,5 @@
-export type VerificationStatus = "pending" | "verified" | "rejected" | "expired";
+export type VerificationStatus =
+  "pending" | "verified" | "rejected" | "expired";
 export type Availability = "available" | "busy" | "offline";
 
 export type Practitioner = {

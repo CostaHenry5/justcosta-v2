@@ -78,6 +78,7 @@ export async function POST(request: Request) {
       .filter((field) => field in body)
       .map((field) => [field, body[field]]),
   );
+  record.updated_at = new Date().toISOString();
   Object.assign(record, {
     professional_category: professionalCategory,
     verification_status: "pending",
@@ -139,6 +140,7 @@ export async function PATCH(request: Request) {
       .filter((field) => field in body)
       .map((field) => [field, body[field]]),
   );
+  record.updated_at = new Date().toISOString();
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("practitioners")
