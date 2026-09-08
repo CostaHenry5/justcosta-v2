@@ -2,19 +2,321 @@
 import { FormEvent, useEffect, useState } from "react";
 import { createClient, User } from "@supabase/supabase-js";
 
-type Practitioner = { id: string; name: string; role: string; phone: string; image_url: string | null; languages: string; consultation_hours: string; is_available: boolean };
-const blank = { name: "", role: "", phone: "", image_url: "", languages: "Kiswahili and English", consultation_hours: "Monday–Saturday, 08:00–17:00", is_available: true };
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co", process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "placeholder");
+type Practitioner = {
+  id: string;
+  name: string;
+  role: string;
+  phone: string;
+  image_url: string | null;
+  languages: string;
+  consultation_hours: string;
+  is_available: boolean;
+};
+const blank = {
+  name: "",
+  role: "",
+  phone: "",
+  image_url: "",
+  languages: "Kiswahili and English",
+  consultation_hours: "Monday–Saturday, 08:00–17:00",
+  is_available: true,
+};
+const defaultPractitioners: Practitioner[] = [
+  { id: "static-emil-mgwami", name: "Dr Emil Mgwami", role: "Medical Doctor (MD)", phone: "+255623555127", image_url: null },
+  { id: "static-richard-kinyaha", name: "Richard Kinyaha", role: "Dentist", phone: "+255620607399", image_url: "/practitioners/richard-kinyaha.jpg" },
+  { id: "static-moses-masika", name: "Moses Masika", role: "Medical Laboratory Professional", phone: "+255734717630", image_url: "/practitioners/moses-masika.jpg" },
+  { id: "static-mussa-kihayile", name: "Mussa Kihayile", role: "Registered Nurse (RN)", phone: "+255778652916", image_url: null },
+  { id: "static-sudi-zaidi", name: "Sudi Zaidi", role: "Dentist (DDS)", phone: "+255679279037", image_url: "/practitioners/sudi-zaidi.png" },
+  { id: "static-rashid", name: "Rashid", role: "Medical Doctor (MD)", phone: "+255622269916", image_url: "/practitioners/rashid.jpg" },
+  { id: "static-julieth-tibesyiga", name: "Julieth Tibesyiga", role: "Medical Doctor (MD)", phone: "+255621109021", image_url: "/practitioners/julieth-tibesyiga.jpg" },
+].map((item) => ({ ...item, languages: "Kiswahili and English", consultation_hours: "Monday–Saturday, 08:00–17:00", is_available: true }));
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "placeholder",
+);
 
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [items, setItems] = useState<Practitioner[]>([]); const [form, setForm] = useState(blank); const [message, setMessage] = useState(""); const [loading, setLoading] = useState(false);
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => setUser(data.user)); }, []);
-  async function api(path: string, options: RequestInit = {}) { const { data } = await supabase.auth.getSession(); const response = await fetch(path, { ...options, headers: { "Content-Type": "application/json", Authorization: "Bearer " + (data.session?.access_token || "") } }); const json = await response.json(); if (!response.ok) throw new Error(json.error || "Request failed."); return json; }
-  async function load() { try { const data = await api("/api/admin/practitioners"); setItems(data.practitioners); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not load practitioners."); } }
-  useEffect(() => { if (user) load(); }, [user]);
-  async function signIn(event: FormEvent) { event.preventDefault(); setLoading(true); setMessage(""); const { data, error } = await supabase.auth.signInWithPassword({ email, password }); setLoading(false); if (error) return setMessage(error.message); setUser(data.user); }
-  async function add(event: FormEvent) { event.preventDefault(); setLoading(true); try { const data = await api("/api/admin/practitioners", { method: "POST", body: JSON.stringify(form) }); setItems((current) => [...current, data.practitioner]); setForm(blank); setMessage("Practitioner added."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save."); } finally { setLoading(false); } }
-  async function save(item: Practitioner) { setLoading(true); try { const data = await api("/api/admin/practitioners", { method: "PATCH", body: JSON.stringify(item) }); setItems((current) => current.map((entry) => entry.id === item.id ? data.practitioner : entry)); setMessage("Changes saved."); } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save."); } finally { setLoading(false); } }
-  if (!user) return <main className="min-h-screen bg-slate-50 p-6 text-slate-900"><section className="mx-auto max-w-md rounded-2xl bg-white p-7 shadow-xl"><p className="font-bold text-cyan-700">FASTMED</p><h1 className="mt-2 text-3xl font-extrabold">Admin sign in</h1><p className="mt-2 text-slate-600">Manage FastMed practitioner profiles and availability.</p><form onSubmit={signIn} className="mt-6 space-y-4"><input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" className="w-full rounded-xl border p-3"/><input required type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" className="w-full rounded-xl border p-3"/><button disabled={loading} className="w-full rounded-xl bg-cyan-700 p-3 font-bold text-white">{loading ? "SIGNING IN..." : "SIGN IN"}</button></form>{message && <p className="mt-4 font-semibold text-red-700">{message}</p>}</section></main>;
-  return <main className="min-h-screen bg-slate-50 p-6 text-slate-900"><div className="mx-auto max-w-5xl"><header className="flex items-center justify-between"><div><p className="font-bold text-cyan-700">FASTMED ADMIN</p><h1 className="text-3xl font-extrabold">Practitioner directory</h1></div><button onClick={() => supabase.auth.signOut().then(() => setUser(null))} className="rounded-lg border px-4 py-2 font-bold">SIGN OUT</button></header><p className="mt-2 text-slate-600">Only your approved account can make changes.</p>{message && <p className="mt-4 rounded-xl bg-cyan-50 p-3 font-semibold text-cyan-900">{message}</p>}<section className="mt-7 rounded-2xl bg-white p-6 shadow"><h2 className="text-xl font-extrabold">Add practitioner</h2><form onSubmit={add} className="mt-4 grid gap-3 sm:grid-cols-2">{Object.entries(form).filter(([key]) => key !== "is_available").map(([key, value]) => <input key={key} required={["name","role","phone"].includes(key)} value={String(value)} onChange={(event) => setForm({ ...form, [key]: event.target.value })} placeholder={key.replaceAll("_"," ").toUpperCase()} className="rounded-lg border p-3"/>)}<label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={form.is_available} onChange={(event) => setForm({ ...form, is_available: event.target.checked })}/> Available during working hours</label><button disabled={loading} className="rounded-lg bg-cyan-700 p-3 font-bold text-white">ADD PRACTITIONER</button></form></section><section className="mt-7 grid gap-4 md:grid-cols-2">{items.map((item) => <article key={item.id} className="rounded-2xl bg-white p-5 shadow"><input value={item.name} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, name: event.target.value } : entry))} className="w-full border-b p-2 text-lg font-extrabold"/><input value={item.role} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, role: event.target.value } : entry))} className="mt-3 w-full rounded border p-2"/><input value={item.phone} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, phone: event.target.value } : entry))} className="mt-3 w-full rounded border p-2"/><input value={item.languages} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, languages: event.target.value } : entry))} className="mt-3 w-full rounded border p-2"/><input value={item.consultation_hours} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, consultation_hours: event.target.value } : entry))} className="mt-3 w-full rounded border p-2"/><label className="mt-3 flex gap-2 font-semibold"><input type="checkbox" checked={item.is_available} onChange={(event) => setItems(items.map((entry) => entry.id === item.id ? { ...entry, is_available: event.target.checked } : entry))}/> Available during working hours</label><button disabled={loading} onClick={() => save(item)} className="mt-4 rounded-lg bg-cyan-700 px-4 py-2 font-bold text-white">SAVE CHANGES</button></article>)}</section></div></main>;
+  const [user, setUser] = useState<User | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [items, setItems] = useState<Practitioner[]>(defaultPractitioners);
+  const [form, setForm] = useState(blank);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+  async function api(path: string, options: RequestInit = {}) {
+    const { data } = await supabase.auth.getSession();
+    const response = await fetch(path, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + (data.session?.access_token || ""),
+      },
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.error || "Request failed.");
+    return json;
+  }
+  async function load() {
+    try {
+      const data = await api("/api/admin/practitioners");
+      const saved: Practitioner[] = Array.isArray(data.practitioners) ? data.practitioners : [];
+      const savedNames = new Set(saved.map((item) => item.name.toLowerCase()));
+      setItems([...saved, ...defaultPractitioners.filter((item) => !savedNames.has(item.name.toLowerCase()))]);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load practitioners.",
+      );
+    }
+  }
+  useEffect(() => {
+    if (user) load();
+  }, [user]);
+  async function signIn(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+    if (error) return setMessage(error.message);
+    setUser(data.user);
+  }
+  async function add(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const data = await api("/api/admin/practitioners", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setItems((current) => [...current, data.practitioner]);
+      setForm(blank);
+      setMessage("Practitioner added.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  async function save(item: Practitioner) {
+    setLoading(true);
+    try {
+      const isUnsavedDefault = item.id.startsWith("static-");
+      const data = await api("/api/admin/practitioners", {
+        method: isUnsavedDefault ? "POST" : "PATCH",
+        body: JSON.stringify(item),
+      });
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id ? data.practitioner : entry,
+        ),
+      );
+      setMessage(isUnsavedDefault ? "Practitioner saved to the directory." : "Changes saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  if (!user)
+    return (
+      <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+        <section className="mx-auto max-w-md rounded-2xl bg-white p-7 shadow-xl">
+          <p className="font-bold text-cyan-700">FASTMED</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Admin sign in</h1>
+          <p className="mt-2 text-slate-600">
+            Manage FastMed practitioner profiles and availability.
+          </p>
+          <form onSubmit={signIn} className="mt-6 space-y-4">
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              className="w-full rounded-xl border p-3"
+            />
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className="w-full rounded-xl border p-3"
+            />
+            <button
+              disabled={loading}
+              className="w-full rounded-xl bg-cyan-700 p-3 font-bold text-white"
+            >
+              {loading ? "SIGNING IN..." : "SIGN IN"}
+            </button>
+          </form>
+          {message && (
+            <p className="mt-4 font-semibold text-red-700">{message}</p>
+          )}
+        </section>
+      </main>
+    );
+  return (
+    <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+      <div className="mx-auto max-w-5xl">
+        <header className="flex items-center justify-between">
+          <div>
+            <p className="font-bold text-cyan-700">FASTMED ADMIN</p>
+            <h1 className="text-3xl font-extrabold">Practitioner directory</h1>
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut().then(() => setUser(null))}
+            className="rounded-lg border px-4 py-2 font-bold"
+          >
+            SIGN OUT
+          </button>
+        </header>
+        <p className="mt-2 text-slate-600">
+          Only your approved account can make changes.
+        </p>
+        {message && (
+          <p className="mt-4 rounded-xl bg-cyan-50 p-3 font-semibold text-cyan-900">
+            {message}
+          </p>
+        )}
+        <section className="mt-7 rounded-2xl bg-white p-6 shadow">
+          <h2 className="text-xl font-extrabold">Add practitioner</h2>
+          <form onSubmit={add} className="mt-4 grid gap-3 sm:grid-cols-2">
+            {Object.entries(form)
+              .filter(([key]) => key !== "is_available")
+              .map(([key, value]) => (
+                <input
+                  key={key}
+                  required={["name", "role", "phone"].includes(key)}
+                  value={String(value)}
+                  onChange={(event) =>
+                    setForm({ ...form, [key]: event.target.value })
+                  }
+                  placeholder={key.replaceAll("_", " ").toUpperCase()}
+                  className="rounded-lg border p-3"
+                />
+              ))}
+            <label className="flex items-center gap-2 font-semibold">
+              <input
+                type="checkbox"
+                checked={form.is_available}
+                onChange={(event) =>
+                  setForm({ ...form, is_available: event.target.checked })
+                }
+              />{" "}
+              Available during working hours
+            </label>
+            <button
+              disabled={loading}
+              className="rounded-lg bg-cyan-700 p-3 font-bold text-white"
+            >
+              ADD PRACTITIONER
+            </button>
+          </form>
+        </section>
+        <section className="mt-7 grid gap-4 md:grid-cols-2">
+          {items.map((item) => (
+            <article key={item.id} className="rounded-2xl bg-white p-5 shadow">
+              <input
+                value={item.name}
+                onChange={(event) =>
+                  setItems(
+                    items.map((entry) =>
+                      entry.id === item.id
+                        ? { ...entry, name: event.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+                className="w-full border-b p-2 text-lg font-extrabold"
+              />
+              <input
+                value={item.role}
+                onChange={(event) =>
+                  setItems(
+                    items.map((entry) =>
+                      entry.id === item.id
+                        ? { ...entry, role: event.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+                className="mt-3 w-full rounded border p-2"
+              />
+              <input
+                value={item.phone}
+                onChange={(event) =>
+                  setItems(
+                    items.map((entry) =>
+                      entry.id === item.id
+                        ? { ...entry, phone: event.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+                className="mt-3 w-full rounded border p-2"
+              />
+              <input
+                value={item.languages}
+                onChange={(event) =>
+                  setItems(
+                    items.map((entry) =>
+                      entry.id === item.id
+                        ? { ...entry, languages: event.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+                className="mt-3 w-full rounded border p-2"
+              />
+              <input
+                value={item.consultation_hours}
+                onChange={(event) =>
+                  setItems(
+                    items.map((entry) =>
+                      entry.id === item.id
+                        ? { ...entry, consultation_hours: event.target.value }
+                        : entry,
+                    ),
+                  )
+                }
+                className="mt-3 w-full rounded border p-2"
+              />
+              <label className="mt-3 flex gap-2 font-semibold">
+                <input
+                  type="checkbox"
+                  checked={item.is_available}
+                  onChange={(event) =>
+                    setItems(
+                      items.map((entry) =>
+                        entry.id === item.id
+                          ? { ...entry, is_available: event.target.checked }
+                          : entry,
+                      ),
+                    )
+                  }
+                />{" "}
+                Available during working hours
+              </label>
+              <button
+                disabled={loading}
+                onClick={() => save(item)}
+                className="mt-4 rounded-lg bg-cyan-700 px-4 py-2 font-bold text-white"
+              >
+                SAVE CHANGES
+              </button>
+            </article>
+          ))}
+        </section>
+      </div>
+    </main>
+  );
 }
