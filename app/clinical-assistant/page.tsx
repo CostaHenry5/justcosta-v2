@@ -3,8 +3,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
+  Download,
   HeartPulse,
   MessageCircle,
+  Printer,
   Save,
   Send,
   Sparkles,
@@ -141,6 +143,48 @@ export default function ClinicalAssistantPage() {
     await sendContent(clinicalMessage);
   }
 
+  function visitSummaryText() {
+    return [
+      "FASTMED VISIT SUMMARY",
+      patientName ? `Patient name: ${patientName}` : "",
+      `Age: ${patientAge}`,
+      patientLocation ? `Location: ${patientLocation}` : "",
+      `Symptoms or health concern: ${patientSymptoms}`,
+      `When it began or changed: ${symptomDuration}`,
+      patientConcerns ? `Questions or worries: ${patientConcerns}` : "",
+      "Prepared with FastMed. Review this summary before sharing it with a healthcare professional.",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  function downloadVisitSummary() {
+    const url = URL.createObjectURL(
+      new Blob([visitSummaryText()], { type: "text/plain" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "fastmed-visit-summary.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function printVisitSummary() {
+    const printWindow = window.open("", "_blank", "width=760,height=900");
+    if (!printWindow) return;
+    printWindow.document.title = "FastMed Visit Summary";
+    const heading = printWindow.document.createElement("h1");
+    heading.textContent = "FastMed Visit Summary";
+    const summary = printWindow.document.createElement("pre");
+    summary.textContent = visitSummaryText();
+    summary.style.cssText =
+      "white-space:pre-wrap;font:16px/1.6 Arial,sans-serif;color:#0f172a";
+    printWindow.document.body.style.padding = "32px";
+    printWindow.document.body.append(heading, summary);
+    printWindow.focus();
+    printWindow.print();
+  }
+
   function reset() {
     abortRef.current?.abort();
     setMessages([]);
@@ -245,6 +289,22 @@ export default function ClinicalAssistantPage() {
             <p className="mt-4 text-sm font-semibold text-slate-600">
               Your name remains on this page and was not sent to the AI service.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={downloadVisitSummary}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
+              >
+                <Download className="h-4 w-4" /> Download summary
+              </button>
+              <button
+                type="button"
+                onClick={printVisitSummary}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
+              >
+                <Printer className="h-4 w-4" /> Print summary
+              </button>
+            </div>
           </section>
         )}
         {particularsSubmitted && (
