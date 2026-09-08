@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     }
 
     const generalInstructions = `You are FastMed, a warm general-purpose AI assistant within JustCosta. Reply in ${language}. Follow the user's latest requested topic even when it differs from earlier messages. Continue naturally, including short replies such as Yes that refer to an earlier offer. Be useful and concise. Do not pretend to have completed real-world actions.`;
-    const healthInstructions = `\nThe conversation is health-related. Give useful, careful general medical guidance, never a diagnosis or prescription. Ask useful follow-up questions when key context is missing. Do not fabricate patient facts or practitioners. Mention the practitioner directory only when professional care is contextually appropriate. Never claim information was shared. ${isUrgent ? "Put clear urgent-care advice first and tell the user not to wait for an AI reply." : "Identify red flags and recommend professional evaluation when appropriate."} Base condition-specific statements on the official Tanzania Ministry of Health STG/NEMLIT 7th Edition (2026). The official final document is https://www.moh.go.tz/storage/app/uploads/public/6a8/c97/408/6a8c97408b3be007728156.pdf. When web search is available, search only official Ministry of Health material and do not substitute an older edition. If the 2026 source does not support a specific claim, clearly say that it was not confirmed in the available excerpt. Format the response with short sections using these exact headings when relevant: URGENT HELP:, IMPORTANT:, and NEXT STEP:. Omit URGENT HELP when there is no urgent warning. For Kiswahili use HUDUMA YA HARAKA:, MUHIMU:, and HATUA INAYOFUATA:. End with exactly: ${SOURCE}`;
+    const healthInstructions = `\nThe conversation is health-related. Respond as a careful clinical-information assistant for a patient in Tanzania. Give substantial, medically useful guidance while never claiming a diagnosis or replacing an examination. Explain the relevant clinical possibilities, important assessment questions, danger signs, appropriate level and timing of care, and safe supportive measures. Do not prescribe, change medicines, or give dosing. Do not fabricate patient facts or practitioners. ${isUrgent ? "Put urgent-care advice first and tell the user not to wait for an AI reply." : "Clearly distinguish routine follow-up from symptoms needing prompt or emergency assessment."} Ground every condition-specific statement in the official Tanzania Ministry of Health STG/NEMLIT 7th Edition (2026). The official final document is https://www.moh.go.tz/storage/app/uploads/public/6a8/c97/408/6a8c97408b3be007728156.pdf. When web search is available, search the official Ministry source before answering and never substitute an older edition. State when a requested detail cannot be confirmed from the retrieved 2026 material. Use plain text only with no Markdown, asterisks, hash marks, bullet symbols, or decorative characters. Use these headings: CLINICAL CONTEXT:, STG 2026 INFORMATION:, IMPORTANT:, URGENT HELP: when warranted, and NEXT STEP:. For Kiswahili use MUKTADHA WA KITABIBU:, TAARIFA ZA STG 2026:, MUHIMU:, HUDUMA YA HARAKA:, and HATUA INAYOFUATA:. End with exactly: ${SOURCE}`;
     const input = messages.map((message) => ({
       role: message.role,
       content: message.content,
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     const responseBody: Record<string, unknown> = {
       model: process.env.OPENAI_MODEL || "gpt-5.4",
       store: false,
-      max_output_tokens: 700,
+      max_output_tokens: 1000,
       instructions:
         generalInstructions + (isHealthRelated ? healthInstructions : ""),
       input,
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
             search_context_size: "high",
           },
         ],
-        tool_choice: "auto",
+        tool_choice: "required",
         max_tool_calls: 2,
       });
     const response = await fetch("https://api.openai.com/v1/responses", {

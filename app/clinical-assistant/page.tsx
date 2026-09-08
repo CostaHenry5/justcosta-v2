@@ -351,7 +351,7 @@ export default function ClinicalAssistantPage() {
                       .filter(Boolean)
                       .map((line, lineIndex) => {
                         const heading =
-                          /^(URGENT HELP|IMPORTANT|NEXT STEP|HUDUMA YA HARAKA|MUHIMU|HATUA INAYOFUATA):/i.test(
+                          /^(CLINICAL CONTEXT|STG 2026 INFORMATION|URGENT HELP|IMPORTANT|NEXT STEP|MUKTADHA WA KITABIBU|TAARIFA ZA STG 2026|HUDUMA YA HARAKA|MUHIMU|HATUA INAYOFUATA):/i.test(
                             line.trim(),
                           );
                         const urgent = /^(URGENT HELP|HUDUMA YA HARAKA):/i.test(
