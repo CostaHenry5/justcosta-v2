@@ -21,12 +21,16 @@ export function PractitionerDirectory() {
   const [category, setCategory] = useState("");
   const [region, setRegion] = useState("");
   const [availability, setAvailability] = useState("");
+  const [directoryCheckedAt, setDirectoryCheckedAt] = useState("Checking now");
 
   useEffect(() => { fetch("/api/practitioners").then((response) => response.json()).then((data) => {
     const saved: Practitioner[] = Array.isArray(data.practitioners) ? data.practitioners : [];
     const savedNames = new Set(saved.map((item) => item.name.toLowerCase()));
     setItems([...saved, ...defaults.filter((item) => !savedNames.has(item.name.toLowerCase()))]);
-  }).finally(() => setLoading(false)); }, []);
+  }).finally(() => {
+    setDirectoryCheckedAt(new Intl.DateTimeFormat("en-TZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Africa/Dar_es_Salaam" }).format(new Date()));
+    setLoading(false);
+  }); }, []);
   const categories = [...new Set(items.map((item) => item.professional_category))].sort();
   const regions = [...new Set(items.map((item) => item.region))].sort();
   const filtered = items.filter((item) => {
@@ -44,7 +48,7 @@ export function PractitionerDirectory() {
         <select aria-label="Region" value={region} onChange={(event) => setRegion(event.target.value)} className={control}><option value="">All regions</option>{regions.map((value) => <option key={value}>{value}</option>)}</select>
         <select aria-label="Availability" value={availability} onChange={(event) => setAvailability(event.target.value)} className={control}><option value="">Any availability</option><option value="available">Available</option><option value="busy">Busy</option><option value="offline">Offline</option></select>
       </div>
-      {loading ? <p className="mt-6 text-slate-600">Loading practitioners…</p> : filtered.length ? <div className="mt-6 grid gap-4 md:grid-cols-2">{filtered.map((item) => <PractitionerCard key={item.id} practitioner={item} />)}</div> : <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center"><p className="font-bold text-slate-900">No practitioners match these filters.</p><p className="mt-1 text-sm text-slate-600">Try changing the search or contact a nearby health facility if you need care.</p></div>}
+      {loading ? <p className="mt-6 text-slate-600">Loading practitioners…</p> : filtered.length ? <div className="mt-6 grid gap-4 md:grid-cols-2">{filtered.map((item) => <PractitionerCard key={item.id} practitioner={item} directoryCheckedAt={directoryCheckedAt} />)}</div> : <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center"><p className="font-bold text-slate-900">No practitioners match these filters.</p><p className="mt-1 text-sm text-slate-600">Try changing the search or contact a nearby health facility if you need care.</p></div>}
       <p className="mt-5 text-sm font-semibold text-red-800">For urgent or life-threatening symptoms, go to the nearest emergency department or contact local emergency services. FastMed is not an emergency service.</p>
     </section>
   );

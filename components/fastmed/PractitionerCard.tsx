@@ -5,8 +5,10 @@ import { VerificationBadge } from "./VerificationBadge";
 
 export function PractitionerCard({
   practitioner,
+  directoryCheckedAt,
 }: {
   practitioner: Practitioner;
+  directoryCheckedAt: string;
 }) {
   const today = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -100,7 +102,10 @@ export function PractitionerCard({
           </span>
         </p>
         <p className="text-xs text-slate-500">
-          Status last updated: {practitioner.updated_at ? `${statusTime} EAT` : statusTime}. Confirm by phone before travel.
+          {practitioner.updated_at
+            ? `Status last updated: ${statusTime} EAT.`
+            : `Directory checked: ${directoryCheckedAt} EAT; practitioner status update time not supplied.`}{" "}
+          Confirm by phone before travel.
         </p>
         {practitioner.show_public_phone && practitioner.phone && (
           <p className="flex items-center gap-2">
