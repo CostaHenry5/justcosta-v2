@@ -27,6 +27,7 @@ export default function ClinicalAssistantPage() {
   const [patientSymptoms, setPatientSymptoms] = useState("");
   const [symptomDuration, setSymptomDuration] = useState("");
   const [patientConcerns, setPatientConcerns] = useState("");
+  const [particularsSubmitted, setParticularsSubmitted] = useState(false);
   const [saveOnDevice, setSaveOnDevice] = useState(false);
   const [savedConversations, setSavedConversations] = useState<ChatMessage[][]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -79,10 +80,11 @@ export default function ClinicalAssistantPage() {
       `When it began or changed: ${symptomDuration}`,
       patientConcerns ? `Questions or worries: ${patientConcerns}` : "",
     ].filter(Boolean).join("\n");
+    setParticularsSubmitted(true);
     await sendContent(clinicalMessage);
   }
 
-  function reset() { abortRef.current?.abort(); setMessages([]); setDraft(""); setError(""); setHealthContext(false); setShowVisitSummary(false); }
+  function reset() { abortRef.current?.abort(); setMessages([]); setDraft(""); setError(""); setHealthContext(false); setShowVisitSummary(false); setParticularsSubmitted(false); }
   const userHealthMessages = messages.filter((message) => message.role === "user").map((message) => message.content);
 
   return (
@@ -93,6 +95,8 @@ export default function ClinicalAssistantPage() {
           <div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700"><HeartPulse className="h-6 w-6" aria-hidden="true" /></div><div><p className="text-sm font-extrabold uppercase tracking-[.16em] text-cyan-700">FastMed health support</p><h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">How are you feeling today?</h1><p className="mt-2 max-w-3xl text-base leading-7 text-slate-600">Tell FastMed what you are experiencing. We can help you understand your symptoms, prepare for a healthcare visit, identify warning signs, and connect you with a healthcare practitioner.</p><p className="mt-2 text-sm font-semibold text-slate-500">FastMed provides AI-generated health information and does not replace assessment by a qualified healthcare professional.</p></div></div>
           <div className="mt-5 flex flex-wrap items-center gap-2"><span className="text-sm font-bold text-slate-700">Reply in</span><button onClick={() => setLanguage("en")} className={language === "en" ? "rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white" : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold"}>English</button><button onClick={() => setLanguage("sw")} className={language === "sw" ? "rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white" : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold"}>Kiswahili</button></div>
         </header>
+        {particularsSubmitted && <section className="mt-6 rounded-3xl border-2 border-cyan-200 bg-cyan-50 p-5 sm:p-7"><p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">Patient summary</p><div className="mt-4 grid gap-3 text-slate-800 sm:grid-cols-2">{patientName && <p><strong>Name:</strong> {patientName}</p>}<p><strong>Age:</strong> {patientAge}</p>{patientLocation && <p><strong>Location:</strong> {patientLocation}</p>}<p className="sm:col-span-2"><strong>Symptoms or concern:</strong> {patientSymptoms}</p><p className="sm:col-span-2"><strong>When it began or changed:</strong> {symptomDuration}</p>{patientConcerns && <p className="sm:col-span-2"><strong>Questions or worries:</strong> {patientConcerns}</p>}</div><p className="mt-4 text-sm font-semibold text-slate-600">Your name remains on this page and was not sent to the AI service.</p></section>}
+        {particularsSubmitted && <div className="mt-6 flex items-center gap-3"><Stethoscope className="h-6 w-6 text-cyan-700" aria-hidden="true" /><h2 className="text-2xl font-extrabold">FastMed guidance</h2></div>}
         <section className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm" aria-label="FastMed conversation">
           <div className={`${messages.length ? "min-h-[20rem]" : ""} space-y-4 p-4 sm:p-6`} aria-live="polite">
             {!messages.length && <div className="mx-auto flex max-w-xl items-center gap-3 py-3 text-left"><Sparkles className="h-6 w-6 shrink-0 text-cyan-600" aria-hidden="true" /><div><h2 className="font-extrabold">Tell us what is going on</h2><p className="mt-1 text-sm text-slate-600">Describe how you feel, when it started, or ask any general question.</p></div></div>}
