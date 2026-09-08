@@ -42,7 +42,7 @@ const projects: Project[] = [
       "Safety reporting",
       "Protected WhatsApp contact after acceptance",
     ],
-    link: "https://nipe-dili.constantinehenry39.chatgpt.site",
+    link: "https://nipedili.justcosta.org/",
     linkLabel: "View Live Project",
   },
   {
