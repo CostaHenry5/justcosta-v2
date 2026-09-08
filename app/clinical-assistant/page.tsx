@@ -1,11 +1,17 @@
 "use client";
-import { FormEvent, useRef, useState } from "react";
-import { ArrowLeft, HeartPulse, Send, Sparkles, Stethoscope } from "lucide-react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { ArrowLeft, BookOpen, HeartPulse, MessageCircle, Save, Send, Sparkles, Stethoscope, Trash2 } from "lucide-react";
 import Link from "next/link";
 import type { ChatMessage } from "@/lib/fastmed-types";
 import { AITransparencyNotice } from "@/components/fastmed/AITransparencyNotice";
 import { PractitionerDirectory } from "@/components/fastmed/PractitionerDirectory";
 import { PrivacyNotice } from "@/components/fastmed/PrivacyNotice";
+
+const healthLibrary = [
+  { title: "Tanzania Ministry of Health Guidelines", description: "Official Ministry publications, strategies, and health resources for Tanzania.", href: "https://www.moh.go.tz/" },
+  { title: "Patient Safety", description: "WHO information about safer care, clear communication, and questions patients can ask.", href: "https://www.who.int/news-room/fact-sheets/detail/patient-safety" },
+  { title: "Emergency Warning Signs", description: "Learn when breathing problems, chest pain, fainting, bleeding, or sudden weakness need urgent care.", href: "https://www.who.int/news-room/questions-and-answers/item/coronavirus-disease-covid-19-home-care-for-families-and-caregivers" },
+];
 
 export default function ClinicalAssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -15,7 +21,23 @@ export default function ClinicalAssistantPage() {
   const [error, setError] = useState("");
   const [healthContext, setHealthContext] = useState(false);
   const [showVisitSummary, setShowVisitSummary] = useState(false);
+  const [saveOnDevice, setSaveOnDevice] = useState(false);
+  const [savedConversations, setSavedConversations] = useState<ChatMessage[][]>([]);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("fastmed-conversations") || "[]");
+      if (Array.isArray(saved)) queueMicrotask(() => setSavedConversations(saved.slice(0, 5)));
+    } catch { /* Ignore invalid device-only data. */ }
+  }, []);
+
+  function saveConversation(conversation: ChatMessage[]) {
+    if (!conversation.length) return;
+    const next = [conversation, ...savedConversations].slice(0, 5);
+    setSavedConversations(next);
+    window.localStorage.setItem("fastmed-conversations", JSON.stringify(next));
+  }
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -28,7 +50,9 @@ export default function ClinicalAssistantPage() {
       const response = await fetch("/api/clinical-assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, language }), signal: abortRef.current.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "FastMed could not respond right now.");
-      setMessages([...nextMessages, { role: "assistant", content: data.reply }]);
+      const completed: ChatMessage[] = [...nextMessages, { role: "assistant", content: data.reply }];
+      setMessages(completed);
+      if (saveOnDevice) saveConversation(completed);
       setHealthContext(Boolean(data.isHealthRelated));
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") setError(caught instanceof Error ? caught.message : "FastMed could not respond right now.");
@@ -53,11 +77,13 @@ export default function ClinicalAssistantPage() {
             {loading && <div className="mr-auto rounded-2xl bg-slate-100 p-4 text-slate-600">FastMed is thinking…</div>}
             {healthContext && messages.at(-1)?.role === "assistant" && <div className="max-w-3xl"><AITransparencyNotice /></div>}
           </div>
-          <form onSubmit={send} className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5"><label htmlFor="fastmed-message" className="sr-only">Message FastMed</label><div className="flex items-end gap-3"><textarea id="fastmed-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={2} maxLength={3000} placeholder={language === "sw" ? "Andika ujumbe wako…" : "Message FastMed…"} className="min-h-14 flex-1 resize-none rounded-2xl border border-slate-300 bg-white p-4 text-base focus:border-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-100" /><button disabled={!draft.trim() || loading} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-700 text-white disabled:opacity-50" aria-label="Send message"><Send className="h-5 w-5" /></button></div>{error && <p className="mt-3 font-semibold text-red-700">{error}</p>}<div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">FastMed can make mistakes. Check important information.</p>{messages.length > 0 && <button type="button" onClick={reset} className="text-sm font-bold text-cyan-800">Start new conversation</button>}</div></form>
+          <form onSubmit={send} className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5"><label htmlFor="fastmed-message" className="sr-only">Message FastMed</label>{messages.length > 0 && <div className="mb-3 flex items-center gap-2 text-sm font-bold text-cyan-900"><MessageCircle className="h-4 w-4" aria-hidden="true" /> Continue chatting—reply naturally or add more information.</div>}<div className="flex items-end gap-3"><textarea id="fastmed-message" value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} rows={2} maxLength={3000} placeholder={language === "sw" ? "Andika ujumbe wako…" : "Message FastMed…"} className="min-h-14 flex-1 resize-none rounded-2xl border border-slate-300 bg-white p-4 text-base focus:border-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-100" /><button disabled={!draft.trim() || loading} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-700 text-white disabled:opacity-50" aria-label="Send message"><Send className="h-5 w-5" /></button></div>{error && <p className="mt-3 font-semibold text-red-700">{error}</p>}<label className="mt-3 flex items-start gap-2 text-sm font-semibold text-slate-700"><input type="checkbox" checked={saveOnDevice} onChange={(event) => setSaveOnDevice(event.target.checked)} className="mt-1 h-4 w-4" /><span>Save this conversation on this device only. It is not shared with a practitioner.</span></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-slate-500">FastMed can make mistakes. Check important information.</p><div className="flex gap-4">{messages.length > 0 && <button type="button" onClick={() => saveConversation(messages)} className="inline-flex items-center gap-1 text-sm font-bold text-cyan-800"><Save className="h-4 w-4" /> Save now</button>}{messages.length > 0 && <button type="button" onClick={reset} className="text-sm font-bold text-cyan-800">Start new conversation</button>}</div></div></form>
         </section>
+        {savedConversations.length > 0 && <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 sm:p-7"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold">Saved on this device</h2><p className="mt-1 text-sm text-slate-600">Only this browser can see these conversations.</p></div><button type="button" onClick={() => { window.localStorage.removeItem("fastmed-conversations"); setSavedConversations([]); }} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700"><Trash2 className="h-4 w-4" /> Clear saved data</button></div><div className="mt-4 space-y-3">{savedConversations.map((conversation, index) => <details key={index} className="rounded-xl bg-slate-50 p-4"><summary className="cursor-pointer font-bold">Saved conversation {index + 1}</summary><div className="mt-3 space-y-2">{conversation.map((message, messageIndex) => <p key={messageIndex} className="whitespace-pre-wrap text-sm text-slate-700"><strong>{message.role === "user" ? "You" : "FastMed"}:</strong> {message.content}</p>)}</div></details>)}</div></section>}
         {healthContext && <section className="mt-6 rounded-3xl border border-cyan-200 bg-white p-5 sm:p-7"><div className="flex items-start gap-3"><Stethoscope className="mt-1 h-6 w-6 text-cyan-700" aria-hidden="true" /><div><h2 className="text-xl font-extrabold">Prepare for professional care</h2><p className="mt-1 text-slate-600">Create a draft from the health details you shared. Review and edit it before you choose to share it.</p></div></div><button type="button" onClick={() => setShowVisitSummary((value) => !value)} className="mt-4 min-h-11 rounded-xl border border-cyan-700 px-4 py-2 font-bold text-cyan-800">{showVisitSummary ? "Hide draft summary" : "Prepare visit summary"}</button>{showVisitSummary && <div className="mt-4 rounded-2xl bg-slate-50 p-5"><p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">AI-prepared visit summary</p><p className="mt-3 font-semibold text-slate-900">Information shared by the user:</p><ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">{userHealthMessages.map((item, index) => <li key={index}>{item}</li>)}</ul><p className="mt-4 text-sm text-slate-600">This draft only includes your words. FastMed has not sent it to anyone.</p></div>}</section>}
         <div className="mt-6"><PrivacyNotice /></div>
         <div className="mt-8"><PractitionerDirectory /></div>
+        <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 sm:p-7"><div className="flex items-start gap-3"><BookOpen className="mt-1 h-6 w-6 text-cyan-700" aria-hidden="true" /><div><p className="text-sm font-bold uppercase tracking-wider text-cyan-700">Trusted resources</p><h2 className="mt-1 text-2xl font-extrabold">Health Library / Maktaba ya Afya</h2><p className="mt-2 text-slate-600">Reliable information to help you prepare for care. These resources do not replace assessment by a qualified practitioner.</p></div></div><div className="mt-5 grid gap-4 md:grid-cols-3">{healthLibrary.map((resource) => <a key={resource.href} href={resource.href} target="_blank" rel="noreferrer" className="rounded-2xl border border-slate-200 p-5 transition hover:border-cyan-500 hover:bg-cyan-50"><h3 className="font-extrabold text-cyan-900">{resource.title}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{resource.description}</p><p className="mt-4 text-sm font-bold text-cyan-700">Open resource →</p></a>)}</div></section>
       </div>
     </main>
   );

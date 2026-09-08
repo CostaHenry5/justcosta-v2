@@ -4,15 +4,29 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import type { Practitioner } from "@/lib/fastmed-types";
 import { PractitionerCard } from "./PractitionerCard";
 
+const defaults: Practitioner[] = [
+  { id: "emil-mgwami", name: "Dr Emil Mgwami", professional_category: "Medical Doctor (MD)", phone: "+255623555127", image_url: null },
+  { id: "richard-kinyaha", name: "Richard Kinyaha", professional_category: "Dentist", phone: "+255620607399", image_url: "/practitioners/richard-kinyaha.jpg" },
+  { id: "moses-masika", name: "Moses Masika", professional_category: "Medical Laboratory Professional", phone: "+255734717630", image_url: "/practitioners/moses-masika.jpg" },
+  { id: "mussa-kihayile", name: "Mussa Kihayile", professional_category: "Registered Nurse (RN)", phone: "+255778652916", image_url: null },
+  { id: "sudi-zaidi", name: "Sudi Zaidi", professional_category: "Dentist (DDS)", phone: "+255679279037", image_url: "/practitioners/sudi-zaidi.png" },
+  { id: "rashid", name: "Rashid", professional_category: "Medical Doctor (MD)", phone: "+255622269916", image_url: "/practitioners/rashid.jpg" },
+  { id: "julieth-tibesyiga", name: "Julieth Tibesyiga", professional_category: "Medical Doctor (MD)", phone: "+255621109021", image_url: "/practitioners/julieth-tibesyiga.jpg" },
+].map((item) => ({ ...item, specialty: null, registration_authority: null, masked_registration_number: null, verification_status: "pending", verified_at: null, verification_expires_at: null, region: "Tanzania", district: null, availability: "available", show_public_phone: true, languages: "Kiswahili and English", consultation_hours: "Monday–Saturday, 08:00–17:00" }));
+
 export function PractitionerDirectory() {
-  const [items, setItems] = useState<Practitioner[]>([]);
+  const [items, setItems] = useState<Practitioner[]>(defaults);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [region, setRegion] = useState("");
   const [availability, setAvailability] = useState("");
 
-  useEffect(() => { fetch("/api/practitioners").then((response) => response.json()).then((data) => setItems(Array.isArray(data.practitioners) ? data.practitioners : [])).finally(() => setLoading(false)); }, []);
+  useEffect(() => { fetch("/api/practitioners").then((response) => response.json()).then((data) => {
+    const saved: Practitioner[] = Array.isArray(data.practitioners) ? data.practitioners : [];
+    const savedNames = new Set(saved.map((item) => item.name.toLowerCase()));
+    setItems([...saved, ...defaults.filter((item) => !savedNames.has(item.name.toLowerCase()))]);
+  }).finally(() => setLoading(false)); }, []);
   const categories = [...new Set(items.map((item) => item.professional_category))].sort();
   const regions = [...new Set(items.map((item) => item.region))].sort();
   const filtered = items.filter((item) => {
