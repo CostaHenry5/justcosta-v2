@@ -147,6 +147,11 @@ export function PractitionerDirectory() {
             be publicly listed. It does not guarantee care quality or live
             availability.
           </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Every availability card shows the practitioner&apos;s last update
+            time when supplied; otherwise it shows when FastMed checked the
+            directory and tells you the status-update time is unavailable.
+          </p>
         </div>
         <SlidersHorizontal
           className="hidden h-6 w-6 text-cyan-700 sm:block"

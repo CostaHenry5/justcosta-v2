@@ -333,6 +333,17 @@ export default function ClinicalAssistantPage() {
               ? "Umechagua Kiswahili. Majibu ya FastMed AI yatakuwa kwa Kiswahili, si lebo za ukurasa pekee."
               : "You selected English. FastMed AI replies will be in English, not only the page labels."}
           </p>
+          <div className="mt-4 rounded-2xl border border-cyan-200 bg-cyan-50 p-3 text-sm leading-6 text-slate-700">
+            <p className="font-extrabold text-cyan-900">
+              FastMed safety update 2026.09.08.5 is active
+            </p>
+            <p>
+              Emergency notice beside chat · independent red-flag keyword check
+              · inline patient particulars · explained practitioner verification
+              · availability freshness · post-response care actions ·
+              English/Kiswahili reply control.
+            </p>
+          </div>
         </header>
         {redFlags.length > 0 && (
           <aside
@@ -701,6 +712,12 @@ export default function ClinicalAssistantPage() {
                 with a practitioner.
               </span>
             </label>
+            {!messages.length && (
+              <p className="mt-3 text-sm text-slate-600">
+                After a FastMed reply, you can find a practitioner or save and
+                print the guidance to share with a doctor.
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-slate-500">
                 FastMed can make mistakes. Check important information.
