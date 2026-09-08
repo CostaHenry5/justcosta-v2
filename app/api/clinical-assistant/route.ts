@@ -1,113 +1,47 @@
 import { NextResponse } from "next/server";
+import type { ChatMessage } from "@/lib/fastmed-types";
 
-const STG_SOURCE = "Tanzania Ministry of Health, Standard Treatment Guidelines and National Essential Medicines List for Tanzania Mainland (2021), where relevant excerpts are available.";
+const HEALTH_TERMS = /\b(pain|fever|cough|blood|bleed|breath|chest|vomit|diarrh|pregnan|medicine|dose|symptom|sick|hospital|doctor|nurse|clinic|health|maumivu|homa|kikohozi|damu|kupumua|kutapika|kuharisha|mimba|dawa|dalili|hospitali|daktari|muuguzi|afya)\b/i;
+const URGENT_TERMS = /\b(chest pain|cannot breathe|can't breathe|severe bleeding|unconscious|seizure|stroke|self[- ]?harm|suicide|maumivu ya kifua|hawezi kupumua|damu nyingi|amepoteza fahamu|degedege|kujiua)\b/i;
+const SOURCE = "Tanzania Ministry of Health STG/NEMLIT, 7th Edition (2026), where relevant excerpts are available.";
 
-const CLINICAL_ASSISTANT_INSTRUCTIONS = [
-  "You are a patient-facing health-visit preparation assistant.",
-  "Use only the provided Tanzania guideline excerpts for condition-specific information.",
-  "You are not a doctor and must not diagnose, prescribe medication, give dosing, recommend a treatment plan, or claim certainty.",
-  "Discuss only possible causes or concerns to raise with a qualified clinician.",
-  "Always state that the response is general information, not a diagnosis.",
-  "Encourage urgent or emergency care immediately for trouble breathing, chest pain, stroke-like symptoms, severe bleeding, loss of consciousness, seizure, severe allergic reaction, or imminent self-harm.",
-  "For non-emergency concerns, advise care from a qualified clinician at the nearest appropriate hospital or health facility.",
-  "Do not offer medication changes, treatment instructions, or unsupported claims.",
-  "If excerpts are not clearly relevant, say so and advise speaking with a clinician instead of guessing.",
-  "Use simple everyday language. Keep the response under 140 words.",
-  "Do not use Markdown, asterisks, bullet symbols, or numbered lists.",
-  "Use at most three short sections, each starting on a new line with one of these exact all-capital headings: IMPORTANT:, NEXT STEP:, or URGENT HELP:.",
-  "When Kiswahili is requested, reply only in simple Kiswahili and use these exact all-capital headings instead: MUHIMU:, HATUA INAYOFUATA:, or HUDUMA YA HARAKA:.",
-  "Put the most important safety advice first. Keep the tone calm and supportive.",
-  "When the notes include a conversation, treat it as prior context. Answer the latest patient follow-up directly and do not repeat the entire first reply.",
-  "End with: Guideline source: Tanzania Ministry of Health STG-NEMLIT (2021), where relevant excerpts are available.",
-].join("\n");
+function textFromResponse(data: { output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }> }) {
+  return (data.output || []).filter((item) => item.type === "message").flatMap((item) => item.content || []).filter((part) => part.type === "output_text").map((part) => part.text || "").join("\n").trim();
+}
 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
-  const vectorStoreId = process.env.OPENAI_VECTOR_STORE_ID;
-
-  if (!apiKey || !vectorStoreId) {
-    return NextResponse.json({ error: "The AI assistant is not configured yet. Please try again later." }, { status: 503 });
-  }
-
+  if (!apiKey) return NextResponse.json({ error: "FastMed is not configured yet. Please try again later." }, { status: 503 });
   try {
     const body = await request.json();
+    const messages: ChatMessage[] = Array.isArray(body.messages) ? body.messages.filter((message: ChatMessage) => (message.role === "user" || message.role === "assistant") && typeof message.content === "string").slice(-12) : [];
+    const totalLength = messages.reduce((sum, message) => sum + message.content.length, 0);
+    if (!messages.length || messages.at(-1)?.role !== "user") return NextResponse.json({ error: "Please enter a message." }, { status: 400 });
+    if (totalLength > 12000) return NextResponse.json({ error: "This conversation is too long. Please start a new conversation." }, { status: 400 });
+    const latest = messages.at(-1)?.content || "";
+    const isHealthRelated = HEALTH_TERMS.test(messages.filter((message) => message.role === "user").map((message) => message.content).join(" "));
+    const isUrgent = URGENT_TERMS.test(latest);
     const language = body.language === "sw" ? "Kiswahili" : "English";
-    const age = typeof body.age === "string" ? body.age.trim() : "";
-    const location = typeof body.location === "string" ? body.location.trim() : "";
-    const symptoms = typeof body.symptoms === "string" ? body.symptoms.trim() : "";
-    const duration = typeof body.duration === "string" ? body.duration.trim() : "";
-    const concerns = typeof body.concerns === "string" ? body.concerns.trim() : "";
+    let excerpts = "";
 
-    if (!age || !symptoms || !duration) {
-      return NextResponse.json({ error: "Please add the patient age, symptoms, and when they began." }, { status: 400 });
+    if (isHealthRelated) {
+      const vectorStoreId = process.env.OPENAI_STG_VECTOR_STORE_ID_2026;
+      if (!vectorStoreId) return NextResponse.json({ error: "The 2026 Tanzania guideline library is not configured yet. FastMed will not substitute an older clinical guideline." }, { status: 503 });
+      const search = await fetch(`https://api.openai.com/v1/vector_stores/${vectorStoreId}/search`, { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ query: latest, max_num_results: 4, rewrite_query: true }) });
+      const searchData = await search.json();
+      if (!search.ok) return NextResponse.json({ error: "The 2026 guideline library could not be searched right now." }, { status: 502 });
+      excerpts = Array.isArray(searchData.data) ? searchData.data.slice(0, 4).flatMap((result: { content?: Array<{ text?: string }> }) => result.content || []).map((item: { text?: string }) => item.text || "").filter(Boolean).join("\n\n---\n\n") : "";
     }
 
-    if (age.length + location.length + symptoms.length + duration.length + concerns.length > 6000) {
-      return NextResponse.json({ error: "Please shorten your notes and try again." }, { status: 400 });
-    }
-
-    const searchQuery = [
-      "Patient age: " + age,
-      "Broad location (region, district, or ward): " + (location || "Not provided"),
-      "Symptoms or concerns: " + symptoms,
-      "When it began or changed: " + duration,
-      "Questions or worries: " + (concerns || "None provided"),
-    ].join("\n");
-
-    const searchResponse = await fetch("https://api.openai.com/v1/vector_stores/" + vectorStoreId + "/search", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: searchQuery, max_num_results: 4, rewrite_query: true }),
-    });
-    const searchData = await searchResponse.json();
-
-    if (!searchResponse.ok) {
-      console.error("Guideline search failed", searchData);
-      return NextResponse.json({ error: "The guideline library could not be searched right now. Please try again later." }, { status: 502 });
-    }
-
-    const guidelineExcerpts = Array.isArray(searchData.data)
-      ? searchData.data.slice(0, 4).map((result: { content?: Array<{ text?: string }> }) =>
-          Array.isArray(result.content) ? result.content.map((item) => item.text || "").filter(Boolean).join("\n") : ""
-        ).filter(Boolean).join("\n\n---\n\n")
-      : "";
-
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "gpt-5.4",
-        store: false,
-        max_output_tokens: 450,
-        instructions: CLINICAL_ASSISTANT_INSTRUCTIONS,
-        input: ["Reply language: " + language, "", "Patient notes:", searchQuery, "", "Tanzania guideline excerpts:", guidelineExcerpts || "No clearly relevant excerpts were found. Do not guess."].join("\n"),
-      }),
-    });
+    const generalInstructions = `You are FastMed, a warm general-purpose AI assistant within JustCosta. Reply in ${language}. Continue the conversation naturally, including short replies such as Yes that refer to an earlier offer. Be useful and concise. Do not pretend to have completed real-world actions.`;
+    const healthInstructions = `\nThe conversation is health-related. Give careful general health information, never a diagnosis or prescription. Ask useful follow-up questions when key context is missing. Do not fabricate patient facts or practitioners. Mention the verified practitioner directory only when professional care is contextually appropriate. Never claim information was shared. ${isUrgent ? "Put clear urgent-care advice first and tell the user not to wait for an AI reply." : "Identify red flags and recommend professional evaluation when appropriate."} Base condition-specific statements only on the supplied Tanzania STG/NEMLIT 7th Edition (2026) excerpts. If excerpts are insufficient, say so. End with exactly: ${SOURCE}`;
+    const input = messages.map((message) => ({ role: message.role, content: message.content }));
+    if (isHealthRelated) input.push({ role: "user", content: `Relevant 2026 guideline excerpts:\n${excerpts || "No clearly relevant excerpt was found. Do not guess."}` });
+    const response = await fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: process.env.OPENAI_MODEL || "gpt-5.4", store: false, max_output_tokens: 700, instructions: generalInstructions + (isHealthRelated ? healthInstructions : ""), input }) });
     const data = await response.json();
-
-    if (!response.ok) {
-      console.error("OpenAI request failed", data);
-      return NextResponse.json({ error: "FastMed guidance could not respond right now. Please try again later." }, { status: 502 });
-    }
-
-    const guidance = Array.isArray(data.output)
-      ? data.output
-          .filter((item: { type?: string }) => item.type === "message")
-          .flatMap((item: { content?: Array<{ type?: string; text?: string }> }) => item.content || [])
-          .filter((part: { type?: string }) => part.type === "output_text")
-          .map((part: { text?: string }) => part.text || "")
-          .join("\n")
-          .trim()
-      : "";
-
-    if (!guidance) {
-      console.error("OpenAI response did not contain output text", data);
-      return NextResponse.json({ error: "FastMed returned no guidance. Please try again later." }, { status: 502 });
-    }
-
-    return NextResponse.json({ guidance: guidance.replace(/\*/g, ""), source: STG_SOURCE });
-  } catch (error) {
-    console.error("Clinical assistant error", error);
-    return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 });
-  }
+    if (!response.ok) { console.error("FastMed response failed", data); return NextResponse.json({ error: "FastMed could not respond right now. Please try again later." }, { status: 502 }); }
+    const reply = textFromResponse(data);
+    if (!reply) return NextResponse.json({ error: "FastMed returned no response. Please try again." }, { status: 502 });
+    return NextResponse.json({ reply, isHealthRelated, source: isHealthRelated ? SOURCE : null });
+  } catch (error) { console.error("FastMed error", error); return NextResponse.json({ error: "Something went wrong. Please try again later." }, { status: 500 }); }
 }
