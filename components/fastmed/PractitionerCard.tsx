@@ -39,6 +39,13 @@ export function PractitionerCard({
     practitioner.availability === "available" && scheduledToday;
   const contactable =
     availableToday && practitioner.show_public_phone && practitioner.phone;
+  const statusTime = practitioner.updated_at
+    ? new Intl.DateTimeFormat("en-TZ", {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Africa/Dar_es_Salaam",
+      }).format(new Date(practitioner.updated_at))
+    : "time not provided";
   return (
     <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex gap-4">
@@ -91,6 +98,9 @@ export function PractitionerCard({
                 ? "Busy today"
                 : "Not available today"}
           </span>
+        </p>
+        <p className="text-xs text-slate-500">
+          Status last updated: {practitioner.updated_at ? `${statusTime} EAT` : statusTime}. Confirm by phone before travel.
         </p>
         {practitioner.show_public_phone && practitioner.phone && (
           <p className="flex items-center gap-2">

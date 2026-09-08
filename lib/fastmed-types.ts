@@ -19,6 +19,7 @@ export type Practitioner = {
   show_public_phone: boolean;
   languages: string | null;
   consultation_hours: string | null;
+  updated_at?: string | null;
 };
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
