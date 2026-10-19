@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import type { ChatMessage } from "@/lib/fastmed-types";
+import {
+  RED_FLAG_RULES,
+  detectRedFlags,
+  extractTriage,
+  highestTriage,
+} from "@/lib/fastmed-safety";
 
 const HEALTH_TERMS =
   /\b(pain|fever|cough|blood|bleed|breath|chest|vomit|diarrh|pregnan|medicine|dose|symptom|sick|hospital|doctor|nurse|clinic|health|maumivu|homa|kikohozi|damu|kupumua|kutapika|kuharisha|mimba|dawa|dalili|hospitali|daktari|muuguzi|afya)\b/i;
-const URGENT_TERMS =
-  /\b(chest pain|cannot breathe|can't breathe|severe bleeding|unconscious|seizure|stroke|self[- ]?harm|suicide|maumivu ya kifua|hawezi kupumua|damu nyingi|amepoteza fahamu|degedege|kujiua)\b/i;
+const KNOWN_FLAG_IDS = new Set(RED_FLAG_RULES.map((rule) => rule.id));
 const GENERAL_SWITCH_TERMS =
   /\b(football|soccer|sports?|technology|computer|phone|business|career|job|work|school|education|relationship|music|movie|travel|weather|mpira|teknolojia|biashara|kazi|shule|elimu|mahusiano|muziki|safari)\b/i;
 const SOURCE =
@@ -70,10 +75,30 @@ export async function POST(request: Request) {
     const explicitTopicSwitch =
       GENERAL_SWITCH_TERMS.test(latest) && !HEALTH_TERMS.test(latest);
     const isShortContinuation = latest.trim().split(/\s+/).length <= 5;
+    // Guided check-in context (age, pregnancy, ticked danger signs). Never includes name.
+    const rawIntake = body.intake && typeof body.intake === "object" ? body.intake : null;
+    const intakeAge =
+      rawIntake && typeof rawIntake.age === "number" && rawIntake.age >= 0 && rawIntake.age <= 130
+        ? rawIntake.age
+        : null;
+    const intakeSigns: string[] =
+      rawIntake && Array.isArray(rawIntake.dangerSigns)
+        ? rawIntake.dangerSigns.filter(
+            (id: unknown): id is string => typeof id === "string" && KNOWN_FLAG_IDS.has(id),
+          )
+        : [];
+    const safety = detectRedFlags(recentUserMessages.join("\n"), {
+      age: intakeAge,
+      pregnant: Boolean(rawIntake?.pregnant),
+      checkedSigns: intakeSigns,
+    });
     const isHealthRelated =
-      !explicitTopicSwitch &&
-      (HEALTH_TERMS.test(latest) || (isShortContinuation && previousWasHealth));
-    const isUrgent = URGENT_TERMS.test(latest);
+      Boolean(rawIntake) ||
+      safety.flags.length > 0 ||
+      (!explicitTopicSwitch &&
+        (HEALTH_TERMS.test(latest) || (isShortContinuation && previousWasHealth)));
+    const isUrgent = safety.level === "emergency";
+    const flagSummary = safety.flags.map((flag) => flag.label.en).join("; ");
     const language = body.language === "sw" ? "Kiswahili" : "English";
     let excerpts = "";
     let useOfficialWebSearch = false;
@@ -114,7 +139,7 @@ export async function POST(request: Request) {
     }
 
     const generalInstructions = `You are FastMed, a warm general-purpose AI assistant within JustCosta. Reply in ${language}. Follow the user's latest requested topic even when it differs from earlier messages. Continue naturally, including short replies such as Yes that refer to an earlier offer. Be useful and concise. Do not pretend to have completed real-world actions.`;
-    const healthInstructions = `\nThe conversation is health-related. Respond as a careful clinical-information assistant for a patient in Tanzania. Give substantial, medically useful guidance while never claiming a diagnosis or replacing an examination. Explain the relevant clinical possibilities, important assessment questions, danger signs, appropriate level and timing of care, and safe supportive measures. Do not prescribe, change medicines, or give dosing. Do not fabricate patient facts or practitioners. ${isUrgent ? "Put urgent-care advice first and tell the user not to wait for an AI reply." : "Clearly distinguish routine follow-up from symptoms needing prompt or emergency assessment."} Ground every condition-specific statement in the official Tanzania Ministry of Health STG/NEMLIT 7th Edition (2026). The official final document is https://www.moh.go.tz/storage/app/uploads/public/6a8/c97/408/6a8c97408b3be007728156.pdf. When web search is available, search the official Ministry source before answering and never substitute an older edition. State when a requested detail cannot be confirmed from the retrieved 2026 material. Use plain text only with no Markdown, asterisks, hash marks, bullet symbols, or decorative characters. Use these headings: CLINICAL CONTEXT:, STG 2026 INFORMATION:, IMPORTANT:, URGENT HELP: when warranted, and NEXT STEP:. For Kiswahili use MUKTADHA WA KITABIBU:, TAARIFA ZA STG 2026:, MUHIMU:, HUDUMA YA HARAKA:, and HATUA INAYOFUATA:. End with exactly: ${SOURCE}`;
+    const healthInstructions = `\nThe conversation is health-related. Respond as a careful clinical-information assistant for a patient in Tanzania. Give substantial, medically useful guidance while never claiming a diagnosis or replacing an examination. Explain the relevant clinical possibilities, important assessment questions, danger signs, appropriate level and timing of care, and safe supportive measures. Do not prescribe, change medicines, or give dosing. Do not fabricate patient facts or practitioners. ${isUrgent ? `FastMed's safety rules detected emergency warning signs (${flagSummary}). Put URGENT HELP first: tell the user to go to the nearest hospital emergency department now and not to wait for an AI reply. In Tanzania the emergency number is 112, and public ambulances are limited, so advise arranging transport to hospital immediately.` : safety.level === "urgent" ? `FastMed's safety rules detected warning signs (${flagSummary}) that need assessment within 24 hours. Say this clearly near the start.` : "Clearly distinguish routine follow-up from symptoms needing prompt or emergency assessment."}${safety.mentalHealth ? " The user may be at risk of self-harm. Respond with warmth and without judgement, encourage them to stay with someone they trust, go to the nearest hospital or call 112 now, and keep the reply short and supportive." : ""}${safety.isChild ? " The patient is a young child; apply child danger signs and be more cautious." : ""}${safety.isPregnancy ? " The patient is or may be pregnant; apply pregnancy danger signs and be more cautious." : ""} Ground every condition-specific statement in the official Tanzania Ministry of Health STG/NEMLIT 7th Edition (2026). The official final document is https://www.moh.go.tz/storage/app/uploads/public/6a8/c97/408/6a8c97408b3be007728156.pdf. When web search is available, search the official Ministry source before answering and never substitute an older edition. State when a requested detail cannot be confirmed from the retrieved 2026 material. Use plain text only with no Markdown, asterisks, hash marks, bullet symbols, or decorative characters. Use these headings: CLINICAL CONTEXT:, STG 2026 INFORMATION:, IMPORTANT:, URGENT HELP: when warranted, and NEXT STEP:. For Kiswahili use MUKTADHA WA KITABIBU:, TAARIFA ZA STG 2026:, MUHIMU:, HUDUMA YA HARAKA:, and HATUA INAYOFUATA:. After NEXT STEP, write the source line exactly: ${SOURCE} Then, as the very last line, write exactly one triage line: TRIAGE: EMERGENCY (needs emergency care now), TRIAGE: URGENT (see a clinician within 24 hours), TRIAGE: SOON (see a clinician within a few days), or TRIAGE: SELF_CARE (home care and monitoring). Use this English line even when replying in Kiswahili. When unsure between two levels, choose the more urgent one.${safety.level ? ` The triage must be at least ${safety.level.toUpperCase()}.` : ""}`;
     const input = messages.map((message) => ({
       role: message.role,
       content: message.content,
@@ -127,7 +152,7 @@ export async function POST(request: Request) {
     const responseBody: Record<string, unknown> = {
       model: process.env.OPENAI_MODEL || "gpt-5.4",
       store: false,
-      max_output_tokens: 1000,
+      max_output_tokens: 1400,
       instructions:
         generalInstructions + (isHealthRelated ? healthInstructions : ""),
       input,
@@ -162,11 +187,14 @@ export async function POST(request: Request) {
         { status: 502 },
       );
     }
-    const reply = textFromResponse(data)
+    const cleaned = textFromResponse(data)
       .replace(/\*/g, "")
       .replace(/^#{1,6}\s*/gm, "")
       .replace(/^\s*[-•]\s+/gm, "")
       .trim();
+    const { level: aiTriage, text: reply } = extractTriage(cleaned);
+    // Rules can only raise the level, never lower it.
+    const triage = isHealthRelated ? highestTriage(aiTriage, safety.level) : null;
     if (!reply)
       return NextResponse.json(
         { error: "FastMed returned no response. Please try again." },
@@ -176,6 +204,8 @@ export async function POST(request: Request) {
       reply,
       isHealthRelated,
       source: isHealthRelated ? SOURCE : null,
+      triage,
+      redFlags: safety.flags.map((flag) => flag.id),
     });
   } catch (error) {
     console.error("FastMed error", error);

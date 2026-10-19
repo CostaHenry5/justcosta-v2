@@ -1,44 +1,60 @@
 "use client";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
-  Download,
+  CheckCircle2,
   HeartPulse,
   MessageCircle,
-  Printer,
   Save,
   Send,
   Sparkles,
-  Stethoscope,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import type { ChatMessage } from "@/lib/fastmed-types";
+import type { ChatMessage, Intake } from "@/lib/fastmed-types";
+import {
+  detectRedFlags,
+  highestTriage,
+  ruleById,
+  type RedFlagRule,
+  type TriageLevel,
+} from "@/lib/fastmed-safety";
+import { intakeAge, intakeSafety, intakeToMessage } from "@/lib/fastmed-intake";
 import { AITransparencyNotice } from "@/components/fastmed/AITransparencyNotice";
+import { DangerSigns } from "@/components/fastmed/DangerSigns";
+import { EmergencyBanner } from "@/components/fastmed/EmergencyBanner";
+import { GuidedCheckIn } from "@/components/fastmed/GuidedCheckIn";
 import { PractitionerDirectory } from "@/components/fastmed/PractitionerDirectory";
 import { PrivacyNotice } from "@/components/fastmed/PrivacyNotice";
+import { TriageCard } from "@/components/fastmed/TriageCard";
+import { VisitSummary } from "@/components/fastmed/VisitSummary";
 
 const healthLibrary = [
   {
     title: "Tanzania Ministry of Health Guidelines",
-    description:
-      "Official Ministry publications, strategies, and health resources for Tanzania.",
+    description: "Official Ministry publications, strategies, and health resources for Tanzania.",
     href: "https://www.moh.go.tz/",
+    external: true,
   },
   {
     title: "Patient Safety",
-    description:
-      "WHO information about safer care, clear communication, and questions patients can ask.",
+    description: "WHO information about safer care, clear communication, and questions patients can ask.",
     href: "https://www.who.int/news-room/fact-sheets/detail/patient-safety",
+    external: true,
   },
   {
     title: "Emergency Warning Signs",
     description:
-      "Learn when breathing problems, chest pain, fainting, bleeding, or sudden weakness need urgent care.",
-    href: "https://www.who.int/news-room/questions-and-answers/item/coronavirus-disease-covid-19-home-care-for-families-and-caregivers",
+      "When breathing problems, chest pain, fainting, bleeding, sudden weakness, or danger signs in children and pregnancy need urgent care.",
+    href: "#danger-signs",
+    external: false,
   },
 ];
+
+const HEADINGS =
+  /^(CLINICAL CONTEXT|STG 2026 INFORMATION|URGENT HELP|IMPORTANT|NEXT STEP|MUKTADHA WA KITABIBU|TAARIFA ZA STG 2026|HUDUMA YA HARAKA|MUHIMU|HATUA INAYOFUATA):/i;
+const URGENT_HEADING = /^(URGENT HELP|HUDUMA YA HARAKA):/i;
 
 export default function ClinicalAssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -47,45 +63,78 @@ export default function ClinicalAssistantPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [healthContext, setHealthContext] = useState(false);
-  const [showVisitSummary, setShowVisitSummary] = useState(false);
-  const [patientName, setPatientName] = useState("");
-  const [patientAge, setPatientAge] = useState("");
-  const [patientLocation, setPatientLocation] = useState("");
-  const [patientSymptoms, setPatientSymptoms] = useState("");
-  const [symptomDuration, setSymptomDuration] = useState("");
-  const [patientConcerns, setPatientConcerns] = useState("");
-  const [particularsSubmitted, setParticularsSubmitted] = useState(false);
+  const [intake, setIntake] = useState<Intake | null>(null);
+  const [intakeMessage, setIntakeMessage] = useState<string | null>(null);
+  const [liveSigns, setLiveSigns] = useState<string[]>([]);
+  const [serverTriage, setServerTriage] = useState<TriageLevel | null>(null);
+  const [serverFlagIds, setServerFlagIds] = useState<string[]>([]);
   const [saveOnDevice, setSaveOnDevice] = useState(false);
-  const [savedConversations, setSavedConversations] = useState<ChatMessage[][]>(
-    [],
-  );
+  const [savedConversations, setSavedConversations] = useState<ChatMessage[][]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const bannerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(
-        window.localStorage.getItem("fastmed-conversations") || "[]",
-      );
-      if (Array.isArray(saved))
-        queueMicrotask(() => setSavedConversations(saved.slice(0, 5)));
+      const saved = JSON.parse(window.localStorage.getItem("fastmed-conversations") || "[]");
+      if (Array.isArray(saved)) queueMicrotask(() => setSavedConversations(saved.slice(0, 5)));
     } catch {
       /* Ignore invalid device-only data. */
     }
   }, []);
 
+  const userText = messages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content)
+    .join("\n");
+
+  // Instant, on-device red-flag check (runs before the AI replies).
+  const safety = useMemo(
+    () =>
+      detectRedFlags(userText, {
+        age: intake ? intakeAge(intake) : null,
+        pregnant: intake ? intakeSafety(intake).pregnant : false,
+        checkedSigns: intake ? intake.dangerSigns : liveSigns,
+      }),
+    [userText, intake, liveSigns],
+  );
+
+  const flags: RedFlagRule[] = useMemo(() => {
+    const byId = new Map(safety.flags.map((flag) => [flag.id, flag]));
+    for (const id of serverFlagIds) {
+      const rule = ruleById(id);
+      if (rule && !byId.has(id)) byId.set(id, rule);
+    }
+    return [...byId.values()];
+  }, [safety.flags, serverFlagIds]);
+
+  const ruleLevel = flags.reduce<TriageLevel | null>((level, flag) => highestTriage(level, flag.level), null);
+  const showEmergency = ruleLevel === "emergency" || flags.some((flag) => flag.category === "mental_health");
+  const mentalHealth = flags.some((flag) => flag.category === "mental_health");
+  const triage = healthContext ? highestTriage(serverTriage, ruleLevel) : null;
+
+  // Bring the emergency banner into view the moment it appears.
+  const wasEmergency = useRef(false);
+  useEffect(() => {
+    if (showEmergency && !wasEmergency.current) {
+      bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    wasEmergency.current = showEmergency;
+  }, [showEmergency]);
+
   function saveConversation(conversation: ChatMessage[]) {
     if (!conversation.length) return;
     const next = [conversation, ...savedConversations].slice(0, 5);
     setSavedConversations(next);
-    window.localStorage.setItem("fastmed-conversations", JSON.stringify(next));
+    try {
+      window.localStorage.setItem("fastmed-conversations", JSON.stringify(next));
+    } catch {
+      /* Storage unavailable; keep in memory only. */
+    }
   }
 
-  async function sendContent(content: string) {
+  async function sendContent(content: string, intakeForRequest: Intake | null = intake) {
     if (!content || loading) return;
-    const nextMessages: ChatMessage[] = [
-      ...messages,
-      { role: "user", content },
-    ];
+    const nextMessages: ChatMessage[] = [...messages, { role: "user", content }];
     setMessages(nextMessages);
     setDraft("");
     setLoading(true);
@@ -95,26 +144,25 @@ export default function ClinicalAssistantPage() {
       const response = await fetch("/api/clinical-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, language }),
+        body: JSON.stringify({
+          messages: nextMessages,
+          language,
+          intake: intakeForRequest ? intakeSafety(intakeForRequest) : liveSigns.length ? { age: null, pregnant: false, dangerSigns: liveSigns } : null,
+        }),
         signal: abortRef.current.signal,
       });
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "FastMed could not respond right now.");
-      const completed: ChatMessage[] = [
-        ...nextMessages,
-        { role: "assistant", content: data.reply },
-      ];
+      if (!response.ok) throw new Error(data.error || "FastMed could not respond right now.");
+      const completed: ChatMessage[] = [...nextMessages, { role: "assistant", content: data.reply }];
       setMessages(completed);
       if (saveOnDevice) saveConversation(completed);
-      setHealthContext(Boolean(data.isHealthRelated));
+      setHealthContext((current) => current || Boolean(data.isHealthRelated));
+      if (data.triage) setServerTriage((current) => highestTriage(current, data.triage));
+      if (Array.isArray(data.redFlags))
+        setServerFlagIds((current) => [...new Set([...current, ...data.redFlags])]);
     } catch (caught) {
       if ((caught as Error).name !== "AbortError")
-        setError(
-          caught instanceof Error
-            ? caught.message
-            : "FastMed could not respond right now.",
-        );
+        setError(caught instanceof Error ? caught.message : "FastMed could not respond right now.");
     } finally {
       setLoading(false);
       abortRef.current = null;
@@ -128,61 +176,12 @@ export default function ClinicalAssistantPage() {
     await sendContent(content);
   }
 
-  async function submitParticulars(event: FormEvent) {
-    event.preventDefault();
-    const clinicalMessage = [
-      `Patient age: ${patientAge}`,
-      patientLocation ? `Location: ${patientLocation}` : "",
-      `Symptoms or health concern: ${patientSymptoms}`,
-      `When it began or changed: ${symptomDuration}`,
-      patientConcerns ? `Questions or worries: ${patientConcerns}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-    setParticularsSubmitted(true);
-    await sendContent(clinicalMessage);
-  }
-
-  function visitSummaryText() {
-    return [
-      "FASTMED VISIT SUMMARY",
-      patientName ? `Patient name: ${patientName}` : "",
-      `Age: ${patientAge}`,
-      patientLocation ? `Location: ${patientLocation}` : "",
-      `Symptoms or health concern: ${patientSymptoms}`,
-      `When it began or changed: ${symptomDuration}`,
-      patientConcerns ? `Questions or worries: ${patientConcerns}` : "",
-      "Prepared with FastMed. Review this summary before sharing it with a healthcare professional.",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
-  }
-
-  function downloadVisitSummary() {
-    const url = URL.createObjectURL(
-      new Blob([visitSummaryText()], { type: "text/plain" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "fastmed-visit-summary.txt";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function printVisitSummary() {
-    const printWindow = window.open("", "_blank", "width=760,height=900");
-    if (!printWindow) return;
-    printWindow.document.title = "FastMed Visit Summary";
-    const heading = printWindow.document.createElement("h1");
-    heading.textContent = "FastMed Visit Summary";
-    const summary = printWindow.document.createElement("pre");
-    summary.textContent = visitSummaryText();
-    summary.style.cssText =
-      "white-space:pre-wrap;font:16px/1.6 Arial,sans-serif;color:#0f172a";
-    printWindow.document.body.style.padding = "32px";
-    printWindow.document.body.append(heading, summary);
-    printWindow.focus();
-    printWindow.print();
+  async function submitIntake(answers: Intake) {
+    const message = intakeToMessage(answers, language);
+    setIntake(answers);
+    setIntakeMessage(message);
+    setLiveSigns(answers.dangerSigns);
+    await sendContent(message, answers);
   }
 
   function reset() {
@@ -191,147 +190,111 @@ export default function ClinicalAssistantPage() {
     setDraft("");
     setError("");
     setHealthContext(false);
-    setShowVisitSummary(false);
-    setParticularsSubmitted(false);
+    setIntake(null);
+    setIntakeMessage(null);
+    setLiveSigns([]);
+    setServerTriage(null);
+    setServerFlagIds([]);
   }
-  const userHealthMessages = messages
-    .filter((message) => message.role === "user")
-    .map((message) => message.content);
+
+  const sw = language === "sw";
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#ecfeff_0,#f8fafc_34rem)] px-4 py-6 text-slate-900 sm:px-6 sm:py-10">
-      <div className="mx-auto flex max-w-6xl flex-col">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <Link
           href="/"
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 font-bold text-cyan-800 hover:bg-cyan-50"
+          className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-2 font-bold text-cyan-800 hover:bg-cyan-50"
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" /> Back to JustCosta
         </Link>
-        <header className="mt-4 rounded-3xl border border-cyan-100 bg-white/90 p-5 shadow-sm sm:p-8">
+
+        <header className="rounded-3xl border border-cyan-100 bg-white/90 p-5 shadow-sm sm:p-8">
           <div className="flex gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
               <HeartPulse className="h-6 w-6" aria-hidden="true" />
             </div>
             <div>
               <p className="text-sm font-extrabold uppercase tracking-[.16em] text-cyan-700">
-                FastMed health support
+                {sw ? "Msaada wa afya wa FastMed" : "FastMed health support"}
               </p>
               <h1 className="mt-1 text-3xl font-extrabold sm:text-4xl">
-                How are you feeling today?
+                {sw ? "Unajisikiaje leo?" : "How are you feeling today?"}
               </h1>
               <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600">
-                Tell FastMed what you are experiencing. We can help you
-                understand your symptoms, prepare for a healthcare visit,
-                identify warning signs, and connect you with a healthcare
-                practitioner.
+                {sw
+                  ? "Ieleze FastMed unachopitia. Tunaweza kukusaidia kuelewa dalili zako, kujiandaa kwenda kliniki, kutambua dalili za hatari, na kukuunganisha na mtaalamu wa afya."
+                  : "Tell FastMed what you are experiencing. We can help you understand your symptoms, prepare for a healthcare visit, identify warning signs, and connect you with a healthcare practitioner."}
               </p>
               <p className="mt-2 text-sm font-semibold text-slate-500">
-                FastMed provides AI-generated health information and does not
-                replace assessment by a qualified healthcare professional.
+                {sw
+                  ? "FastMed inatoa taarifa za afya zilizotengenezwa na AI na haichukui nafasi ya uchunguzi wa mtaalamu wa afya."
+                  : "FastMed provides AI-generated health information and does not replace assessment by a qualified healthcare professional."}
               </p>
             </div>
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="text-sm font-bold text-slate-700">Reply in</span>
-            <button
-              onClick={() => setLanguage("en")}
-              className={
-                language === "en"
-                  ? "rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white"
-                  : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold"
-              }
-            >
-              English
-            </button>
-            <button
-              onClick={() => setLanguage("sw")}
-              className={
-                language === "sw"
-                  ? "rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white"
-                  : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold"
-              }
-            >
-              Kiswahili
-            </button>
+            <span className="text-sm font-bold text-slate-700">{sw ? "Jibu kwa" : "Reply in"}</span>
+            {(["en", "sw"] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={language === code}
+                onClick={() => setLanguage(code)}
+                className={
+                  language === code
+                    ? "rounded-full bg-cyan-700 px-4 py-2 text-sm font-bold text-white"
+                    : "rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold"
+                }
+              >
+                {code === "en" ? "English" : "Kiswahili"}
+              </button>
+            ))}
           </div>
         </header>
-        {particularsSubmitted && (
-          <section className="order-2 mt-6 rounded-3xl border-2 border-cyan-200 bg-cyan-50 p-5 sm:p-7">
-            <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">
-              Patient summary
-            </p>
-            <div className="mt-4 grid gap-3 text-slate-800 sm:grid-cols-2">
-              {patientName && (
-                <p>
-                  <strong>Name:</strong> {patientName}
-                </p>
-              )}
-              <p>
-                <strong>Age:</strong> {patientAge}
-              </p>
-              {patientLocation && (
-                <p>
-                  <strong>Location:</strong> {patientLocation}
-                </p>
-              )}
-              <p className="sm:col-span-2">
-                <strong>Symptoms or concern:</strong> {patientSymptoms}
-              </p>
-              <p className="sm:col-span-2">
-                <strong>When it began or changed:</strong> {symptomDuration}
-              </p>
-              {patientConcerns && (
-                <p className="sm:col-span-2">
-                  <strong>Questions or worries:</strong> {patientConcerns}
-                </p>
-              )}
-            </div>
-            <p className="mt-4 text-sm font-semibold text-slate-600">
-              Your name remains on this page and was not sent to the AI service.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={downloadVisitSummary}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
-              >
-                <Download className="h-4 w-4" /> Download summary
-              </button>
-              <button
-                type="button"
-                onClick={printVisitSummary}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-700 bg-white px-4 py-2 font-bold text-cyan-800"
-              >
-                <Printer className="h-4 w-4" /> Print summary
-              </button>
-            </div>
-          </section>
-        )}
-        {particularsSubmitted && (
-          <div className="order-3 mt-6 flex items-center gap-3">
-            <Stethoscope className="h-6 w-6 text-cyan-700" aria-hidden="true" />
-            <h2 className="text-2xl font-extrabold">FastMed guidance</h2>
+
+        <div ref={bannerRef} className="scroll-mt-4 empty:hidden">
+          {showEmergency && (
+            <EmergencyBanner
+              flags={flags.filter((flag) => flag.level === "emergency")}
+              mentalHealth={mentalHealth}
+              language={language}
+            />
+          )}
+        </div>
+
+        {!intake ? (
+          <GuidedCheckIn
+            language={language}
+            loading={loading}
+            onSubmit={submitIntake}
+            onDangerSignsChange={setLiveSigns}
+          />
+        ) : (
+          <div className="flex items-center gap-3 rounded-2xl border border-cyan-200 bg-cyan-50 px-5 py-4 font-bold text-cyan-950">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-cyan-700" aria-hidden="true" />
+            {sw
+              ? "Uchunguzi wa awali umekamilika. Endelea kuzungumza na FastMed hapa chini."
+              : "Check-in complete. Keep chatting with FastMed below."}
           </div>
         )}
+
+        {triage && <TriageCard level={triage} flags={flags} language={language} />}
+
         <section
-          className="order-4 mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           aria-label="FastMed conversation"
         >
-          <div
-            className={`${messages.length ? "min-h-[20rem]" : ""} space-y-4 p-4 sm:p-6`}
-            aria-live="polite"
-          >
+          <div className={`${messages.length ? "min-h-[16rem]" : ""} space-y-4 p-4 sm:p-6`} aria-live="polite">
             {!messages.length && (
               <div className="mx-auto flex max-w-xl items-center gap-3 py-3 text-left">
-                <Sparkles
-                  className="h-6 w-6 shrink-0 text-cyan-600"
-                  aria-hidden="true"
-                />
+                <Sparkles className="h-6 w-6 shrink-0 text-cyan-600" aria-hidden="true" />
                 <div>
-                  <h2 className="font-extrabold">Tell us what is going on</h2>
+                  <h2 className="font-extrabold">{sw ? "Au andika moja kwa moja" : "Or just type"}</h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    Describe how you feel, when it started, or ask any general
-                    question.
+                    {sw
+                      ? "Eleza unavyojisikia, ilianza lini, au uliza swali lolote."
+                      : "Describe how you feel, when it started, or ask any general question."}
                   </p>
                 </div>
               </div>
@@ -350,19 +313,14 @@ export default function ClinicalAssistantPage() {
                       .split("\n")
                       .filter(Boolean)
                       .map((line, lineIndex) => {
-                        const heading =
-                          /^(CLINICAL CONTEXT|STG 2026 INFORMATION|URGENT HELP|IMPORTANT|NEXT STEP|MUKTADHA WA KITABIBU|TAARIFA ZA STG 2026|HUDUMA YA HARAKA|MUHIMU|HATUA INAYOFUATA):/i.test(
-                            line.trim(),
-                          );
-                        const urgent = /^(URGENT HELP|HUDUMA YA HARAKA):/i.test(
-                          line.trim(),
-                        );
+                        const heading = HEADINGS.test(line.trim());
+                        const urgent = URGENT_HEADING.test(line.trim());
                         return (
                           <p
                             key={lineIndex}
                             className={
                               heading
-                                ? `mt-3 first:mt-0 font-extrabold ${urgent ? "text-red-800" : "text-cyan-900"}`
+                                ? `mt-3 font-extrabold first:mt-0 ${urgent ? "text-red-800" : "text-cyan-900"}`
                                 : "mt-2 first:mt-0"
                             }
                           >
@@ -375,7 +333,7 @@ export default function ClinicalAssistantPage() {
             ))}
             {loading && (
               <div className="mr-auto rounded-2xl bg-slate-100 p-4 text-slate-600">
-                FastMed is thinking…
+                {sw ? "FastMed inafikiri…" : "FastMed is thinking…"}
               </div>
             )}
             {healthContext && messages.at(-1)?.role === "assistant" && (
@@ -384,17 +342,16 @@ export default function ClinicalAssistantPage() {
               </div>
             )}
           </div>
-          <form
-            onSubmit={send}
-            className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5"
-          >
+          <form onSubmit={send} className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5">
             <label htmlFor="fastmed-message" className="sr-only">
               Message FastMed
             </label>
             {messages.length > 0 && (
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-cyan-900">
                 <MessageCircle className="h-4 w-4" aria-hidden="true" />{" "}
-                Continue chatting—reply naturally or add more information.
+                {sw
+                  ? "Endelea kuzungumza—jibu kwa kawaida au ongeza maelezo."
+                  : "Continue chatting—reply naturally or add more information."}
               </div>
             )}
             <div className="flex items-end gap-3">
@@ -410,9 +367,7 @@ export default function ClinicalAssistantPage() {
                 }}
                 rows={2}
                 maxLength={3000}
-                placeholder={
-                  language === "sw" ? "Andika ujumbe wako…" : "Message FastMed…"
-                }
+                placeholder={sw ? "Andika ujumbe wako…" : "Message FastMed…"}
                 className="min-h-14 flex-1 resize-none rounded-2xl border border-slate-300 bg-white p-4 text-base focus:border-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-100"
               />
               <button
@@ -423,9 +378,7 @@ export default function ClinicalAssistantPage() {
                 <Send className="h-5 w-5" />
               </button>
             </div>
-            {error && (
-              <p className="mt-3 font-semibold text-red-700">{error}</p>
-            )}
+            {error && <p className="mt-3 font-semibold text-red-700">{error}</p>}
             <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-slate-700">
               <input
                 type="checkbox"
@@ -434,163 +387,78 @@ export default function ClinicalAssistantPage() {
                 className="mt-1 h-4 w-4"
               />
               <span>
-                Save this conversation on this device only. It is not shared
-                with a practitioner.
+                {sw
+                  ? "Hifadhi mazungumzo haya kwenye kifaa hiki tu. Hayashirikiwi na mtaalamu."
+                  : "Save this conversation on this device only. It is not shared with a practitioner."}
               </span>
             </label>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-slate-500">
-                FastMed can make mistakes. Check important information.
+                {sw ? "FastMed inaweza kukosea. Hakiki taarifa muhimu." : "FastMed can make mistakes. Check important information."}
               </p>
-              <div className="flex gap-4">
-                {messages.length > 0 && (
+              {messages.length > 0 && (
+                <div className="flex gap-4">
                   <button
                     type="button"
                     onClick={() => saveConversation(messages)}
                     className="inline-flex items-center gap-1 text-sm font-bold text-cyan-800"
                   >
-                    <Save className="h-4 w-4" /> Save now
+                    <Save className="h-4 w-4" /> {sw ? "Hifadhi sasa" : "Save now"}
                   </button>
-                )}
-                {messages.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="text-sm font-bold text-cyan-800"
-                  >
-                    Start new conversation
+                  <button type="button" onClick={reset} className="text-sm font-bold text-cyan-800">
+                    {sw ? "Anza mazungumzo mapya" : "Start new conversation"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </form>
         </section>
-        <section className="order-1 mt-6 rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-7">
-          <div className="flex items-start gap-3">
-            <Stethoscope
-              className="mt-1 h-6 w-6 text-cyan-700"
-              aria-hidden="true"
-            />
-            <div>
-              <h2 className="text-2xl font-extrabold">Patient particulars</h2>
-              <p className="mt-1 text-slate-600">
-                Enter the health details below for a structured FastMed
-                response. Your name stays on this device and is not sent to the
-                AI service.
-              </p>
-            </div>
-          </div>
-          <form
-            onSubmit={submitParticulars}
-            className="mt-5 grid gap-4 sm:grid-cols-2"
-          >
-            <label className="font-bold">
-              Patient name{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <input
-                value={patientName}
-                onChange={(event) => setPatientName(event.target.value)}
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold">
-              Age
-              <input
-                required
-                type="number"
-                min="0"
-                max="130"
-                value={patientAge}
-                onChange={(event) => setPatientAge(event.target.value)}
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Location{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <input
-                value={patientLocation}
-                onChange={(event) => setPatientLocation(event.target.value)}
-                placeholder="Region, district, or ward"
-                className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Symptoms or health concern
-              <textarea
-                required
-                rows={4}
-                value={patientSymptoms}
-                onChange={(event) => setPatientSymptoms(event.target.value)}
-                placeholder="Describe what you are feeling"
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              When did it begin, and has it changed?
-              <textarea
-                required
-                rows={3}
-                value={symptomDuration}
-                onChange={(event) => setSymptomDuration(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <label className="font-bold sm:col-span-2">
-              Questions or worries{" "}
-              <span className="font-normal text-slate-500">(optional)</span>
-              <textarea
-                rows={3}
-                value={patientConcerns}
-                onChange={(event) => setPatientConcerns(event.target.value)}
-                className="mt-2 w-full rounded-xl border border-slate-300 p-4"
-              />
-            </label>
-            <button
-              disabled={loading}
-              className="min-h-12 rounded-xl bg-cyan-700 px-5 py-3 font-extrabold text-white disabled:opacity-50 sm:col-span-2"
-            >
-              {loading
-                ? "Getting health guidance…"
-                : "Get FastMed health guidance"}
-            </button>
-          </form>
-        </section>
+
+        {(healthContext || intake) && messages.length > 0 && (
+          <VisitSummary
+            language={language}
+            intake={intake}
+            intakeMessage={intakeMessage}
+            messages={messages}
+            triage={triage}
+            flags={flags}
+          />
+        )}
+
         {savedConversations.length > 0 && (
-          <section className="order-5 mt-6 rounded-3xl border border-slate-200 bg-white p-5 sm:p-7">
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h2 className="text-xl font-extrabold">Saved on this device</h2>
+                <h2 className="text-xl font-extrabold">{sw ? "Yaliyohifadhiwa kwenye kifaa hiki" : "Saved on this device"}</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Only this browser can see these conversations.
+                  {sw ? "Kivinjari hiki pekee kinaweza kuona mazungumzo haya." : "Only this browser can see these conversations."}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  window.localStorage.removeItem("fastmed-conversations");
+                  try {
+                    window.localStorage.removeItem("fastmed-conversations");
+                  } catch {
+                    /* ignore */
+                  }
                   setSavedConversations([]);
                 }}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700"
               >
-                <Trash2 className="h-4 w-4" /> Clear saved data
+                <Trash2 className="h-4 w-4" /> {sw ? "Futa yaliyohifadhiwa" : "Clear saved data"}
               </button>
             </div>
             <div className="mt-4 space-y-3">
               {savedConversations.map((conversation, index) => (
                 <details key={index} className="rounded-xl bg-slate-50 p-4">
                   <summary className="cursor-pointer font-bold">
-                    Saved conversation {index + 1}
+                    {sw ? "Mazungumzo" : "Saved conversation"} {index + 1}
                   </summary>
                   <div className="mt-3 space-y-2">
                     {conversation.map((message, messageIndex) => (
-                      <p
-                        key={messageIndex}
-                        className="whitespace-pre-wrap text-sm text-slate-700"
-                      >
-                        <strong>
-                          {message.role === "user" ? "You" : "FastMed"}:
-                        </strong>{" "}
+                      <p key={messageIndex} className="whitespace-pre-wrap text-sm text-slate-700">
+                        <strong>{message.role === "user" ? (sw ? "Wewe" : "You") : "FastMed"}:</strong>{" "}
                         {message.content}
                       </p>
                     ))}
@@ -600,75 +468,20 @@ export default function ClinicalAssistantPage() {
             </div>
           </section>
         )}
-        {healthContext && (
-          <section className="order-5 mt-6 rounded-3xl border border-cyan-200 bg-white p-5 sm:p-7">
-            <div className="flex items-start gap-3">
-              <Stethoscope
-                className="mt-1 h-6 w-6 text-cyan-700"
-                aria-hidden="true"
-              />
-              <div>
-                <h2 className="text-xl font-extrabold">
-                  Prepare for professional care
-                </h2>
-                <p className="mt-1 text-slate-600">
-                  Create a draft from the health details you shared. Review and
-                  edit it before you choose to share it.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowVisitSummary((value) => !value)}
-              className="mt-4 min-h-11 rounded-xl border border-cyan-700 px-4 py-2 font-bold text-cyan-800"
-            >
-              {showVisitSummary
-                ? "Hide draft summary"
-                : "Prepare visit summary"}
-            </button>
-            {showVisitSummary && (
-              <div className="mt-4 rounded-2xl bg-slate-50 p-5">
-                <p className="text-sm font-extrabold uppercase tracking-wide text-cyan-800">
-                  AI-prepared visit summary
-                </p>
-                <p className="mt-3 font-semibold text-slate-900">
-                  Information shared by the user:
-                </p>
-                <ul className="mt-2 list-disc space-y-2 pl-5 text-slate-700">
-                  {userHealthMessages.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-                <p className="mt-4 text-sm text-slate-600">
-                  This draft only includes your words. FastMed has not sent it
-                  to anyone.
-                </p>
-              </div>
-            )}
-          </section>
-        )}
-        <div className="order-5 mt-6">
-          <PrivacyNotice />
-        </div>
-        <div className="order-5 mt-8">
-          <PractitionerDirectory />
-        </div>
-        <section className="order-5 mt-8 rounded-3xl border border-slate-200 bg-white p-5 sm:p-7">
+
+        <PrivacyNotice />
+        <PractitionerDirectory />
+        <DangerSigns language={language} />
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7">
           <div className="flex items-start gap-3">
-            <BookOpen
-              className="mt-1 h-6 w-6 text-cyan-700"
-              aria-hidden="true"
-            />
+            <BookOpen className="mt-1 h-6 w-6 text-cyan-700" aria-hidden="true" />
             <div>
-              <p className="text-sm font-bold uppercase tracking-wider text-cyan-700">
-                Trusted resources
-              </p>
-              <h2 className="mt-1 text-2xl font-extrabold">
-                Health Library / Maktaba ya Afya
-              </h2>
+              <p className="text-sm font-bold uppercase tracking-wider text-cyan-700">Trusted resources</p>
+              <h2 className="mt-1 text-2xl font-extrabold">Health Library / Maktaba ya Afya</h2>
               <p className="mt-2 text-slate-600">
-                Reliable information to help you prepare for care. These
-                resources do not replace assessment by a qualified practitioner.
+                Reliable information to help you prepare for care. These resources do not replace assessment by a
+                qualified practitioner.
               </p>
             </div>
           </div>
@@ -677,18 +490,13 @@ export default function ClinicalAssistantPage() {
               <a
                 key={resource.href}
                 href={resource.href}
-                target="_blank"
-                rel="noreferrer"
+                {...(resource.external ? { target: "_blank", rel: "noreferrer" } : {})}
                 className="rounded-2xl border border-slate-200 p-5 transition hover:border-cyan-500 hover:bg-cyan-50"
               >
-                <h3 className="font-extrabold text-cyan-900">
-                  {resource.title}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {resource.description}
-                </p>
+                <h3 className="font-extrabold text-cyan-900">{resource.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{resource.description}</p>
                 <p className="mt-4 text-sm font-bold text-cyan-700">
-                  Open resource →
+                  {resource.external ? "Open resource →" : "View warning signs ↓"}
                 </p>
               </a>
             ))}
