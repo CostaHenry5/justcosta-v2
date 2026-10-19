@@ -9,6 +9,7 @@ import {
   Save,
   Send,
   Sparkles,
+  Stethoscope,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -202,12 +203,21 @@ export default function ClinicalAssistantPage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#ecfeff_0,#f8fafc_34rem)] px-4 py-6 text-slate-900 sm:px-6 sm:py-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-2 font-bold text-cyan-800 hover:bg-cyan-50"
-        >
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" /> Back to JustCosta
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl px-2 font-bold text-cyan-800 hover:bg-cyan-50"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" /> Back to JustCosta
+          </Link>
+          <Link
+            href="/clinical-assistant/pro"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 text-sm font-extrabold text-indigo-800 hover:bg-indigo-50"
+          >
+            <Stethoscope className="h-4 w-4" aria-hidden="true" />
+            {sw ? "Mtaalamu wa afya? FastMED Pro" : "Healthcare professional? FastMED Pro"}
+          </Link>
+        </div>
 
         <header className="rounded-3xl border border-cyan-100 bg-white/90 p-5 shadow-sm sm:p-8">
           <div className="flex gap-4">
