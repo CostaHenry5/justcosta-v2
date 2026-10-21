@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ThemeProvider from "../components/ThemeProvider";
@@ -14,9 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Costa Henry",
+  metadataBase: new URL("https://www.justcosta.org"),
+  title: "Costa Henry — Nurse, Health Informatics & Digital Builder",
   description:
-    "Medical Personnel | Health Informatics | Data Analyst | Digital Solutions Developer",
+    "Registered Nurse in Dar es Salaam building digital health and community products — FastMed, NipeDili and more.",
+  openGraph: {
+    title: "Costa Henry — JustCosta",
+    description:
+      "Registered Nurse in Dar es Salaam building digital health and community products.",
+    url: "https://www.justcosta.org",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f6bd12",
 };
 
 export default function RootLayout({
@@ -30,7 +42,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
-      <body className="bg-white text-slate-900 dark:bg-slate-950 dark:text-white transition-colors duration-300">
+      <body className="bg-canvas text-ink transition-colors duration-300">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

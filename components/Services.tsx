@@ -46,27 +46,27 @@ export default function Services() {
   return (
     <section
       id="services"
-      className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+      className="bg-surface-2 py-24 transition-colors duration-300"
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="mb-16"
+          className="mb-14"
         >
-          <p className="uppercase tracking-[0.35em] text-blue-600 font-bold mb-4">
+          <p className="eyebrow">
             Services
           </p>
 
-          <h2 className="text-5xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
             What I Do
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 
           {services.map((service, index) => {
             const Icon = service.icon;
@@ -81,22 +81,22 @@ export default function Services() {
                   delay: index * 0.1,
                 }}
                 viewport={{ once: true }}
-                className="rounded-3xl bg-white dark:bg-slate-950 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 p-8"
+                className={`group rounded-3xl border border-line bg-surface p-7 transition-all duration-300 hover:-translate-y-1 hover:border-gold hover:shadow-xl hover:shadow-gold/10 sm:p-8 ${index === 0 ? "md:col-span-2" : ""}`}
               >
-                <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-slate-800 flex items-center justify-center mb-6">
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-soft transition group-hover:bg-gold">
 
                   <Icon
-                    size={32}
-                    className="text-blue-600"
+                    size={28}
+                    className="text-gold-text transition group-hover:text-on-gold"
                   />
 
                 </div>
 
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+                <h3 className="mb-3 text-xl font-extrabold text-ink sm:text-2xl">
                   {service.title}
                 </h3>
 
-                <p className="leading-8 text-slate-600 dark:text-slate-300">
+                <p className="leading-7 text-muted">
                   {service.description}
                 </p>
 

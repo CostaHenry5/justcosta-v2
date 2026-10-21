@@ -58,27 +58,27 @@ export default function Skills() {
   return (
     <section
       id="skills"
-      className="py-24 bg-white dark:bg-slate-950 transition-colors duration-300"
+      className="bg-canvas py-24 transition-colors duration-300"
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="mb-16"
+          className="mb-14"
         >
-          <p className="uppercase tracking-[0.35em] text-blue-600 font-bold mb-4">
+          <p className="eyebrow">
             Skills
           </p>
 
-          <h2 className="text-5xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
             Professional Skills
           </h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid gap-6 md:grid-cols-2">
 
           {skillCategories.map((category, index) => {
             const Icon = category.icon;
@@ -93,18 +93,18 @@ export default function Skills() {
                   delay: index * 0.15,
                 }}
                 viewport={{ once: true }}
-                className="rounded-3xl bg-slate-50 dark:bg-slate-900 shadow-xl hover:shadow-2xl transition-all duration-300 p-8"
+                className="group rounded-3xl border border-line bg-surface p-7 transition-all duration-300 hover:border-gold hover:shadow-xl hover:shadow-gold/10 sm:p-8"
               >
                 <div className="flex items-center gap-4 mb-6">
 
-                  <div className="rounded-2xl bg-blue-100 dark:bg-slate-800 p-3">
+                  <div className="rounded-2xl bg-gold-soft p-3 transition group-hover:bg-gold">
                     <Icon
                       size={28}
-                      className="text-blue-600"
+                      className="text-gold-text transition group-hover:text-on-gold"
                     />
                   </div>
 
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-2xl font-extrabold text-ink">
                     {category.title}
                   </h3>
 
@@ -115,7 +115,7 @@ export default function Skills() {
                   {category.skills.map((skill) => (
                     <span
                       key={skill}
-                      className="rounded-full bg-blue-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300"
+                      className="rounded-full bg-surface-2 px-4 py-2 text-sm font-medium text-ink-soft"
                     >
                       {skill}
                     </span>

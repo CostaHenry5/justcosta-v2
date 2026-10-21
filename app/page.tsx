@@ -12,14 +12,14 @@ import ScrollToTop from "../components/ScrollToTop";
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-white dark:bg-slate-950 transition-colors duration-300">
+    <main className="min-h-screen overflow-x-hidden bg-canvas transition-colors duration-300">
       <Navbar />
       <About />
       <Stats />
+      <Projects />
       <Experience />
       <Skills />
       <Services />
-      <Projects />
       <Contact />
       <Footer />
       <WhatsAppButton />

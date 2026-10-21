@@ -2,12 +2,12 @@
 
 import { motion } from "framer-motion";
 import {
+  ArrowUpRight,
   BarChart3,
   BrainCircuit,
   BriefcaseBusiness,
   Building2,
   Check,
-  ExternalLink,
   Globe,
   Smartphone,
 } from "lucide-react";
@@ -16,96 +16,181 @@ import type { LucideIcon } from "lucide-react";
 type Project = {
   title: string;
   status: string;
+  live?: boolean;
   icon: LucideIcon;
-  color: string;
   description: string;
   tech?: string[];
-  features?: string[];
   link: string;
   linkLabel?: string;
 };
 
+const featured = {
+  title: "NipeDili",
+  tagline: "Dili karibu nawe",
+  status: "Live · Dar es Salaam pilot",
+  description:
+    "A trusted, mobile-first marketplace connecting people with gigs, part-time jobs and local services across Dar es Salaam.",
+  features: [
+    "Worker and employer profiles",
+    "85+ local job and service roles",
+    "Applications and hiring management",
+    "Listing moderation",
+    "Verification and completed-work ratings",
+    "Safety reporting",
+    "Protected WhatsApp contact after acceptance",
+    "Prices in TZS or USD",
+  ],
+  link: "https://nipedilitz.com",
+};
+
 const projects: Project[] = [
-  {
-    title: "NipeDili",
-    status: "Active development — Dar es Salaam pilot",
-    icon: BriefcaseBusiness,
-    color: "bg-blue-600",
-    description:
-      "A trusted mobile-first marketplace connecting people with gigs, part-time jobs and local services across Dar es Salaam.",
-    features: [
-      "Worker and employer profiles",
-      "85+ local job and service roles",
-      "Job applications and hiring management",
-      "Founder listing moderation",
-      "Verification and completed-work ratings",
-      "Safety reporting",
-      "Protected WhatsApp contact after acceptance",
-    ],
-    link: "https://nipedili.justcosta.org/",
-    linkLabel: "View Live Project",
-  },
-  {
-    title: "iPhones Mwenge",
-    status: "Featured Store",
-    icon: Smartphone,
-    color: "bg-cyan-600 text-white shadow-lg shadow-cyan-200",
-    description: "iPhones Mwenge is a premium mobile and gadgets shop located at Mwenge ITV in Dar es Salaam. We specialise in the latest high-end devices and accessories from leading global brands, including Apple, Samsung, Google Pixel, Guess, Polo, Santa Barbara, Pitaka, Aulumu, Anker, Powerology, Green Lion, Beats, JBL and Sony. Discover phones, speakers, phone cases, USB cables, adapters, earbuds, headphones and many more gadgets—all in one place.",
-    tech: ["Apple", "Samsung", "Google Pixel", "Premium Accessories", "Audio", "Mwenge"],
-    link: "https://www.instagram.com/iphonesmwenge/",
-  },
   {
     title: "FastMED",
     status: "Live",
+    live: true,
     icon: BrainCircuit,
-    color: "bg-cyan-500",
-    description: "FastMed helps people understand their next safe step when they have a health concern.\n\nIt helps a patient organise symptoms, timing, questions, age, and location into a clear visit summary. It then provides simple, cautious health guidance based on available Tanzania treatment-guideline material, highlights emergency warning signs, and helps the patient contact an available healthcare practitioner.\n\nFastMed is designed to make healthcare information easier to understand in English and Kiswahili.",
+    description:
+      "Helps people understand their next safe step when they have a health concern. It organises symptoms, timing and questions into a clear visit summary, gives cautious guidance based on Tanzania treatment-guideline material, flags emergency warning signs, and connects patients to an available practitioner — in English and Kiswahili.",
     tech: ["Patient Support", "Tanzania STG-NEMLIT", "Practitioner Access", "Health Informatics"],
     link: "/clinical-assistant",
+    linkLabel: "Try FastMED",
+  },
+  {
+    title: "iPhones Mwenge",
+    status: "Featured store",
+    live: true,
+    icon: Smartphone,
+    description:
+      "A premium phone and gadgets shop at Mwenge ITV, Dar es Salaam — the latest devices and accessories from Apple, Samsung, Google Pixel, Anker, Beats, JBL, Sony and more.",
+    tech: ["Apple", "Samsung", "Google Pixel", "Accessories", "Audio"],
+    link: "https://www.instagram.com/iphonesmwenge/",
+    linkLabel: "Visit on Instagram",
   },
   {
     title: "JustCosta Portfolio",
     status: "Live",
+    live: true,
     icon: Globe,
-    color: "bg-green-500",
-    description: "A modern portfolio built with Next.js, React, TypeScript and Tailwind CSS showcasing healthcare, health informatics, software development and data analytics work.",
-    tech: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Framer Motion", "Vercel"],
+    description:
+      "This site — built with Next.js, React, TypeScript and Tailwind CSS to showcase healthcare, health informatics, software and data work.",
+    tech: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Vercel"],
     link: "https://www.justcosta.org/",
   },
   {
     title: "Healthcare Analytics Dashboard",
-    status: "In Development",
+    status: "In development",
     icon: BarChart3,
-    color: "bg-yellow-500",
-    description: "Interactive healthcare dashboards designed for clinical reporting, data visualisation and decision support.",
+    description:
+      "Interactive healthcare dashboards for clinical reporting, data visualisation and decision support.",
     tech: ["Power BI", "Python", "SQL", "Healthcare Analytics"],
     link: "#",
   },
   {
     title: "Hospital Management System",
-    status: "In Development",
+    status: "In development",
     icon: Building2,
-    color: "bg-purple-500",
-    description: "A concept for streamlining patient records, workflows and reporting in healthcare facilities.",
+    description:
+      "A concept for streamlining patient records, workflows and reporting in healthcare facilities.",
     tech: ["Health Informatics", "Records", "Workflows", "Reporting"],
     link: "#",
   },
 ];
 
+function StatusPill({ status, live }: { status: string; live?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+        live ? "bg-gold-soft text-gold-text" : "bg-surface-2 text-muted"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${live ? "bg-leaf" : "bg-muted/60"}`}
+        aria-hidden="true"
+      />
+      {status}
+    </span>
+  );
+}
+
 export default function Projects() {
   return (
-    <section id="projects" className="bg-white py-24 text-slate-900">
-      <div className="mx-auto max-w-7xl px-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12 max-w-2xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-700">Projects</p>
-          <h2 className="mt-3 text-4xl font-bold sm:text-5xl">Ideas built for people and impact.</h2>
-          <p className="mt-4 text-slate-700">Explore selected work across technology, healthcare and business.</p>
+    <section id="projects" className="bg-canvas py-24 transition-colors duration-300">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-12 max-w-2xl"
+        >
+          <p className="eyebrow">Projects</p>
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
+            Ideas built for people and impact.
+          </h2>
+          <p className="mt-4 text-lg text-muted">
+            Selected work across healthcare, technology and business.
+          </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Featured: NipeDili */}
+        <motion.article
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="relative overflow-hidden rounded-[2rem] bg-gold p-7 text-on-gold shadow-xl shadow-gold/20 sm:p-10 lg:p-12"
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/25 blur-2xl"
+          />
+          <div className="relative grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-center">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#171a18] text-[#f6bd12]">
+                  <BriefcaseBusiness className="h-6 w-6" />
+                </span>
+                <span className="rounded-full bg-[#171a18]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider">
+                  Featured · {featured.status}
+                </span>
+              </div>
+              <h3 className="mt-6 text-4xl font-extrabold tracking-tight sm:text-5xl">
+                {featured.title}
+              </h3>
+              <p className="mt-1 text-lg font-semibold italic opacity-80">
+                {featured.tagline}
+              </p>
+              <p className="mt-5 max-w-lg text-lg leading-8 text-[#3a3d39]">
+                {featured.description}
+              </p>
+              <a
+                href={featured.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-[#171a18] px-6 py-3.5 font-bold text-[#f8f7f2] transition hover:bg-[#2a2d2a]"
+              >
+                Visit nipedilitz.com
+                <ArrowUpRight className="h-5 w-5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+              </a>
+            </div>
+
+            <ul className="grid gap-3 rounded-3xl bg-white/55 p-6 backdrop-blur-sm sm:grid-cols-2 sm:p-7">
+              {featured.features.map((feature) => (
+                <li key={feature} className="flex items-start gap-2.5 text-[0.95rem] font-medium text-[#171a18]">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#171a18]">
+                    <Check aria-hidden="true" className="h-3 w-3 text-[#f6bd12]" strokeWidth={3} />
+                  </span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </motion.article>
+
+        {/* Other projects */}
+        <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project, index) => {
             const Icon = project.icon;
             const isAvailable = project.link !== "#";
+            const isExternal = project.link.startsWith("http");
             return (
               <motion.article
                 key={project.title}
@@ -113,48 +198,39 @@ export default function Projects() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.06 }}
-                className={`flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-cyan-400 hover:shadow-lg ${
-                  index === 0 ? "md:col-span-2 lg:col-span-3" : ""
+                className={`group flex flex-col rounded-3xl border border-line bg-surface p-7 transition duration-300 hover:-translate-y-1 hover:border-gold hover:shadow-xl hover:shadow-gold/10 ${
+                  index === 0 ? "lg:col-span-2" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className={"flex h-12 w-12 items-center justify-center rounded-xl " + project.color}>
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-soft text-gold-text transition group-hover:bg-gold group-hover:text-on-gold">
                     <Icon className="h-6 w-6" />
-                  </div>
-                  <span className="max-w-56 rounded-full bg-slate-100 px-3 py-1 text-center text-xs font-medium text-slate-700">{project.status}</span>
+                  </span>
+                  <StatusPill status={project.status} live={project.live} />
                 </div>
-                <h3 className="mt-6 text-xl font-bold">{project.title}</h3>
-                <p className="mt-3 flex-1 whitespace-pre-line text-sm leading-6 text-slate-700">{project.description}</p>
-                {project.features && (
-                  <ul className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                    {project.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm text-slate-700">
-                        <Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <h3 className="mt-6 text-xl font-extrabold text-ink">{project.title}</h3>
+                <p className="mt-3 flex-1 text-[0.95rem] leading-7 text-muted">{project.description}</p>
                 {project.tech && (
                   <div className="mt-5 flex flex-wrap gap-2">
-                    {project.tech.map((item) => <span key={item} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">{item}</span>)}
+                    {project.tech.map((item) => (
+                      <span key={item} className="rounded-full bg-surface-2 px-3 py-1 text-xs font-medium text-ink-soft">
+                        {item}
+                      </span>
+                    ))}
                   </div>
                 )}
                 {isAvailable ? (
                   <a
                     href={project.link}
-                    target={project.link.startsWith("http") ? "_blank" : undefined}
-                    rel={project.link.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className={`mt-6 inline-flex w-fit items-center gap-2 font-semibold transition-colors ${
-                      project.linkLabel
-                        ? "rounded-full bg-cyan-700 px-5 py-3 text-white shadow-lg shadow-cyan-700/20 hover:bg-cyan-800"
-                        : "text-cyan-700 hover:text-cyan-900"
-                    }`}
+                    target={isExternal ? "_blank" : undefined}
+                    rel={isExternal ? "noopener noreferrer" : undefined}
+                    className="mt-6 inline-flex w-fit items-center gap-1.5 font-bold text-gold-text underline-offset-4 hover:underline"
                   >
-                    {project.linkLabel ?? "View project"} <ExternalLink className="h-4 w-4" />
+                    {project.linkLabel ?? "View project"}
+                    <ArrowUpRight className="h-4 w-4" />
                   </a>
                 ) : (
-                  <span className="mt-6 text-sm font-medium text-slate-500">Coming soon</span>
+                  <span className="mt-6 text-sm font-semibold text-muted">Coming soon</span>
                 )}
               </motion.article>
             );

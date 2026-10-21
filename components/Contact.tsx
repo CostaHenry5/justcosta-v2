@@ -1,57 +1,87 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail, Phone, Globe, GitBranch, AtSign } from "lucide-react";
+import { ArrowUpRight, AtSign, GitBranch, Globe, Mail, MessageCircle, Phone } from "lucide-react";
 
 const contacts = [
-  { icon: Mail, title: "Email", value: "hello@justcosta.org", href: "mailto:hello@justcosta.org" },
   { icon: Phone, title: "Phone", value: "+255 769 944 733", href: "tel:+255769944733" },
   { icon: AtSign, title: "Instagram", value: "@iphonesmwenge", href: "https://www.instagram.com/iphonesmwenge/" },
-  { icon: Globe, title: "Website", value: "justcosta.org", href: "https://justcosta.org" },
   { icon: GitBranch, title: "GitHub", value: "github.com/CostaHenry5", href: "https://github.com/CostaHenry5" },
+  { icon: Globe, title: "Website", value: "justcosta.org", href: "https://justcosta.org" },
 ];
 
 export default function Contact() {
   return (
-    <section id="contact" className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      <div className="max-w-6xl mx-auto px-6 lg:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <p className="uppercase tracking-[0.35em] text-blue-600 font-bold mb-4">Contact</p>
-          <h2 className="text-5xl font-extrabold text-slate-900 dark:text-white mb-6">Let's Connect</h2>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Whether you're interested in healthcare, health informatics, software development, data analytics, or collaboration, I'd be happy to connect.
-          </p>
-        </motion.div>
-
-        <div className="grid gap-8 md:grid-cols-2">
-          {contacts.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <motion.a
-                key={item.title}
-                href={item.href}
-                target={item.href.startsWith("http") ? "_blank" : undefined}
-                rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="rounded-3xl bg-white dark:bg-slate-950 p-8 shadow-xl hover:-translate-y-2 hover:shadow-2xl transition-all duration-300"
+    <section id="contact" className="bg-canvas py-24 transition-colors duration-300">
+      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="relative overflow-hidden rounded-[2rem] bg-band p-8 text-band-text sm:p-12"
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-gold/30 blur-3xl"
+            />
+            <p className="eyebrow relative text-gold!">Contact</p>
+            <h2 className="relative mt-4 text-4xl font-extrabold tracking-tight sm:text-5xl">
+              Let&apos;s build something useful together.
+            </h2>
+            <p className="relative mt-5 max-w-lg text-lg leading-8 text-band-muted">
+              Healthcare, health informatics, software, data or a collaboration
+              idea — I&apos;d be happy to hear from you.
+            </p>
+            <div className="relative mt-9 flex flex-wrap gap-4">
+              <a
+                href="mailto:hello@justcosta.org"
+                className="inline-flex items-center gap-2 rounded-full bg-gold px-6 py-3.5 font-bold text-on-gold transition hover:bg-gold-hover"
               >
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 dark:bg-slate-800">
-                  <Icon size={30} className="text-blue-600" />
-                </div>
-                <h3 className="mb-2 text-2xl font-bold text-slate-900 dark:text-white">{item.title}</h3>
-                <p className="break-all text-slate-600 dark:text-slate-300">{item.value}</p>
-              </motion.a>
-            );
-          })}
+                <Mail className="h-5 w-5" />
+                hello@justcosta.org
+              </a>
+              <a
+                href="https://wa.me/255769944733"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-white/25 px-6 py-3.5 font-bold text-band-text transition hover:border-gold hover:text-gold"
+              >
+                <MessageCircle className="h-5 w-5" />
+                WhatsApp
+              </a>
+            </div>
+          </motion.div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            {contacts.map((item, index) => {
+              const Icon = item.icon;
+              const isExternal = item.href.startsWith("http");
+              return (
+                <motion.a
+                  key={item.title}
+                  href={item.href}
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noopener noreferrer" : undefined}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  viewport={{ once: true }}
+                  className="group flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition hover:border-gold hover:shadow-lg hover:shadow-gold/10"
+                >
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold-soft transition group-hover:bg-gold">
+                    <Icon size={22} className="text-gold-text transition group-hover:text-on-gold" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-muted">{item.title}</span>
+                    <span className="block truncate text-lg font-bold text-ink">{item.value}</span>
+                  </span>
+                  <ArrowUpRight className="h-5 w-5 shrink-0 text-muted transition group-hover:text-gold-text" />
+                </motion.a>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

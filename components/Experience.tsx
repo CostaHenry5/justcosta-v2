@@ -87,22 +87,22 @@ export default function Experience() {
   return (
     <section
       id="experience"
-      className="py-24 bg-slate-50 dark:bg-slate-900 transition-colors duration-300"
+      className="bg-surface-2 py-24 transition-colors duration-300"
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-10">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8">
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
           viewport={{ once: true }}
-          className="mb-16"
+          className="mb-14"
         >
-          <p className="uppercase tracking-[0.35em] text-blue-600 font-bold mb-4">
+          <p className="eyebrow">
             Clinical Experience
           </p>
 
-          <h2 className="text-5xl font-extrabold text-slate-900 dark:text-white">
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
             Hospital Experience
           </h2>
         </motion.div>
@@ -119,24 +119,24 @@ export default function Experience() {
                 delay: index * 0.15,
               }}
               viewport={{ once: true }}
-              className="rounded-3xl bg-white dark:bg-slate-950 shadow-xl p-8"
+              className="rounded-3xl border border-line bg-surface p-6 shadow-sm sm:p-9"
             >
 
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
 
                 <div className="flex items-center gap-4">
 
-                  <div className="bg-blue-100 dark:bg-slate-800 p-3 rounded-2xl">
-                    <Building2 className="text-blue-600" size={28} />
+                  <div className="shrink-0 rounded-2xl bg-gold p-3">
+                    <Building2 className="text-on-gold" size={26} />
                   </div>
 
                   <div>
 
-                    <h3 className="text-3xl font-bold text-slate-900 dark:text-white">
+                    <h3 className="text-2xl font-extrabold text-ink sm:text-3xl">
                       {hospital.hospital}
                     </h3>
 
-                    <p className="text-blue-600 font-semibold mt-1">
+                    <p className="mt-1 font-semibold text-gold-text">
                       {hospital.title}
                     </p>
 
@@ -144,7 +144,7 @@ export default function Experience() {
 
                 </div>
 
-                <div className="flex items-center gap-2 mt-6 lg:mt-0 text-slate-600 dark:text-slate-300">
+                <div className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-surface-2 px-4 py-2 text-ink-soft lg:mt-0">
 
                   <Calendar size={18} />
 
@@ -156,13 +156,13 @@ export default function Experience() {
 
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-7 border-t border-line pt-7">
 
                 {hospital.sections.map((section) => (
 
                   <div key={section.title}>
 
-                    <h4 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
+                    <h4 className="mb-3 text-sm font-extrabold uppercase tracking-wider text-muted">
                       {section.title}
                     </h4>
 
@@ -172,7 +172,7 @@ export default function Experience() {
 
                         <span
                           key={department}
-                          className="rounded-full bg-blue-100 dark:bg-slate-800 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300"
+                          className="rounded-full border border-line bg-canvas px-4 py-2 text-sm font-medium text-ink-soft transition hover:border-gold hover:bg-gold-wash"
                         >
                           {department}
                         </span>
