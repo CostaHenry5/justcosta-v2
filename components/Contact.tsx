@@ -6,7 +6,7 @@ import { ArrowUpRight, AtSign, GitBranch, Globe, Mail, MessageCircle, Phone } fr
 const contacts = [
   { icon: Phone, title: "Phone", value: "+255 769 944 733", href: "tel:+255769944733" },
   { icon: AtSign, title: "Instagram", value: "@iphonesmwenge", href: "https://www.instagram.com/iphonesmwenge/" },
-  { icon: GitBranch, title: "GitHub", value: "github.com/CostaHenry5", href: "https://github.com/CostaHenry5" },
+  { icon: GitBranch, title: "GitHub", value: "@CostaHenry5", href: "https://github.com/CostaHenry5" },
   { icon: Globe, title: "Website", value: "justcosta.org", href: "https://justcosta.org" },
 ];
 

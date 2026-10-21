@@ -43,10 +43,10 @@ export default function About() {
               <span className="mt-2 block">
                 I build{" "}
                 <span className="relative inline-block">
-                  <span className="relative z-10">healthcare</span>
+                  <span className="relative z-10 dark:text-gold">healthcare</span>
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-1 z-0 h-4 rounded-sm bg-gold sm:h-5"
+                    className="absolute inset-x-0 bottom-1 z-0 h-4 rounded-sm bg-gold sm:h-5 dark:opacity-25"
                   />
                 </span>{" "}
                 technology.
