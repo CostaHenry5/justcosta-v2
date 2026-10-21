@@ -25,7 +25,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="mt-5 max-w-sm leading-7 text-band-muted">
-              Registered Nurse, health informatics specialist, software
+              Medical Personnel, health informatics specialist, software
               developer and data analyst — improving healthcare and local
               opportunity through technology.
             </p>

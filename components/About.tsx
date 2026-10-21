@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, MapPin, Stethoscope } from "lucide-react";
 
 const roles = [
-  "Registered Nurse",
+  "Medical Personnel",
   "Health Informatics",
   "Data Analyst",
   "Digital Solutions Developer",
@@ -54,8 +54,8 @@ export default function About() {
             </h1>
 
             <p className="mt-7 max-w-xl text-lg leading-8 text-muted">
-              A Registered Nurse who combines clinical experience with software
-              and data, building practical digital tools that improve care and
+              As Medical Personnel, I combine clinical experience with software
+              and data to build practical digital tools that improve care and
               create opportunity in Tanzania.
             </p>
 

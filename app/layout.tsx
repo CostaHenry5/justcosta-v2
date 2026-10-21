@@ -15,13 +15,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.justcosta.org"),
-  title: "Costa Henry — Nurse, Health Informatics & Digital Builder",
+  title: "Costa Henry — Medical Personnel, Health Informatics & Digital Builder",
   description:
-    "Registered Nurse in Dar es Salaam building digital health and community products — FastMed, NipeDili and more.",
+    "Medical Personnel in Dar es Salaam building digital health and community products — FastMed, NipeDili and more.",
   openGraph: {
     title: "Costa Henry — JustCosta",
     description:
-      "Registered Nurse in Dar es Salaam building digital health and community products.",
+      "Medical Personnel in Dar es Salaam building digital health and community products.",
     url: "https://www.justcosta.org",
     type: "website",
   },
