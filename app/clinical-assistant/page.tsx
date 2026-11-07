@@ -21,7 +21,9 @@ import {
   type TriageLevel,
 } from "@/lib/fastmed-safety";
 import { intakeAge, intakeSafety, intakeToMessage } from "@/lib/fastmed-intake";
+import { CONSENT_VERSION } from "@/lib/fastmed-privacy";
 import { AITransparencyNotice } from "@/components/fastmed/AITransparencyNotice";
+import { ConsentCard } from "@/components/fastmed/ConsentCard";
 import { DangerSigns } from "@/components/fastmed/DangerSigns";
 import { EmergencyBanner } from "@/components/fastmed/EmergencyBanner";
 import { GuidedCheckIn } from "@/components/fastmed/GuidedCheckIn";
@@ -70,8 +72,32 @@ export default function ClinicalAssistantPage() {
   const [serverFlagIds, setServerFlagIds] = useState<string[]>([]);
   const [saveOnDevice, setSaveOnDevice] = useState(false);
   const [savedConversations, setSavedConversations] = useState<ChatMessage[][]>([]);
+  const [consented, setConsented] = useState<boolean | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const bannerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let accepted = false;
+    try {
+      const consent = JSON.parse(window.localStorage.getItem("fastmed-consent") || "null");
+      accepted = consent?.version === CONSENT_VERSION;
+    } catch {
+      /* No stored consent. */
+    }
+    queueMicrotask(() => setConsented(accepted));
+  }, []);
+
+  function acceptConsent() {
+    try {
+      window.localStorage.setItem(
+        "fastmed-consent",
+        JSON.stringify({ version: CONSENT_VERSION, acceptedAt: new Date().toISOString() }),
+      );
+    } catch {
+      /* Storage unavailable; consent lasts for this visit only. */
+    }
+    setConsented(true);
+  }
 
   useEffect(() => {
     try {
@@ -147,11 +173,13 @@ export default function ClinicalAssistantPage() {
         body: JSON.stringify({
           messages: nextMessages,
           language,
+          consentVersion: CONSENT_VERSION,
           intake: intakeForRequest ? intakeSafety(intakeForRequest) : liveSigns.length ? { age: null, pregnant: false, dangerSigns: liveSigns } : null,
         }),
         signal: abortRef.current.signal,
       });
       const data = await response.json();
+      if (data.consentRequired) setConsented(false);
       if (!response.ok) throw new Error(data.error || "FastMed could not respond right now.");
       const completed: ChatMessage[] = [...nextMessages, { role: "assistant", content: data.reply }];
       setMessages(completed);
@@ -263,7 +291,9 @@ export default function ClinicalAssistantPage() {
           )}
         </div>
 
-        {!intake ? (
+        {consented === false && <ConsentCard language={language} onAccept={acceptConsent} />}
+
+        {consented && (!intake ? (
           <GuidedCheckIn
             language={language}
             loading={loading}
@@ -277,10 +307,11 @@ export default function ClinicalAssistantPage() {
               ? "Uchunguzi wa awali umekamilika. Endelea kuzungumza na FastMed hapa chini."
               : "Check-in complete. Keep chatting with FastMed below."}
           </div>
-        )}
+        ))}
 
         {triage && <TriageCard level={triage} flags={flags} language={language} />}
 
+        {consented && (
         <section
           className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           aria-label="FastMed conversation"
@@ -413,6 +444,7 @@ export default function ClinicalAssistantPage() {
             </div>
           </form>
         </section>
+        )}
 
         {(healthContext || intake) && messages.length > 0 && (
           <VisitSummary
@@ -469,7 +501,7 @@ export default function ClinicalAssistantPage() {
           </section>
         )}
 
-        <PrivacyNotice />
+        <PrivacyNotice language={language} />
         <PractitionerDirectory />
         <DangerSigns language={language} />
 

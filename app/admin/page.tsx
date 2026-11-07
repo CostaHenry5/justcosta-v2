@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useEffect, useState } from "react";
 import { createClient, User } from "@supabase/supabase-js";
+import { UsagePanel } from "@/components/fastmed/UsagePanel";
 
 type Practitioner = {
   id: string;
@@ -35,6 +36,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "placeholder",
 );
 
+async function loadUsage() {
+  const { data } = await supabase.auth.getSession();
+  const response = await fetch("/api/admin/usage", {
+    headers: { Authorization: "Bearer " + (data.session?.access_token || "") },
+  });
+  const json = await response.json();
+  if (!response.ok) throw new Error(json.error || "Could not load usage.");
+  return json;
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
@@ -49,7 +60,7 @@ export default function AdminPage() {
   const [notice, setNotice] = useState("");
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
-      setMode("reset");
+      queueMicrotask(() => setMode("reset"));
     }
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -354,6 +365,7 @@ export default function AdminPage() {
             {message}
           </p>
         )}
+        <UsagePanel load={loadUsage} />
         <section className="mt-7 rounded-2xl bg-white p-6 shadow">
           <h2 className="text-xl font-extrabold">Add practitioner</h2>
           <form onSubmit={add} className="mt-4 grid gap-3 sm:grid-cols-2">
