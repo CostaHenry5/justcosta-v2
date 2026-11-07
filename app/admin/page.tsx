@@ -43,8 +43,22 @@ export default function AdminPage() {
   const [form, setForm] = useState(blank);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<"signin" | "forgot" | "reset">("signin");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [notice, setNotice] = useState("");
   useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash.includes("type=recovery")) {
+      setMode("reset");
+    }
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setMode("reset");
+        setUser(session?.user ?? null);
+      }
+    });
+    return () => listener.subscription.unsubscribe();
   }, []);
   async function api(path: string, options: RequestInit = {}) {
     const { data } = await supabase.auth.getSession();
@@ -88,6 +102,41 @@ export default function AdminPage() {
     if (error) return setMessage(error.message);
     setUser(data.user);
   }
+  async function sendReset(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setMessage("");
+    setNotice("");
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/admin",
+    });
+    setLoading(false);
+    if (error) return setMessage(error.message);
+    setNotice(
+      "If that email belongs to an admin account, a reset link is on its way. Check your inbox (and spam folder).",
+    );
+  }
+  async function updatePassword(event: FormEvent) {
+    event.preventDefault();
+    setMessage("");
+    if (newPassword.length < 8)
+      return setMessage("Password must be at least 8 characters.");
+    if (newPassword !== confirmPassword)
+      return setMessage("The two passwords do not match.");
+    setLoading(true);
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    setLoading(false);
+    if (error) return setMessage(error.message);
+    setNewPassword("");
+    setConfirmPassword("");
+    setUser(data.user);
+    setMode("signin");
+    if (typeof window !== "undefined")
+      window.history.replaceState(null, "", window.location.pathname);
+    setMessage("Password updated.");
+  }
   async function add(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -125,6 +174,103 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
+  if (mode === "reset")
+    return (
+      <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+        <section className="mx-auto max-w-md rounded-2xl bg-white p-7 shadow-xl">
+          <p className="font-bold text-cyan-700">FASTMED</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Set a new password</h1>
+          {user ? (
+            <form onSubmit={updatePassword} className="mt-6 space-y-4">
+              <input
+                required
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="New password (at least 8 characters)"
+                className="w-full rounded-xl border p-3"
+              />
+              <input
+                required
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                placeholder="Confirm new password"
+                className="w-full rounded-xl border p-3"
+              />
+              <button
+                disabled={loading}
+                className="w-full rounded-xl bg-cyan-700 p-3 font-bold text-white"
+              >
+                {loading ? "SAVING..." : "SAVE NEW PASSWORD"}
+              </button>
+            </form>
+          ) : (
+            <p className="mt-4 text-slate-600">
+              This reset link is invalid or has expired. Please request a new one.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setMessage("");
+            }}
+            className="mt-4 text-sm font-semibold text-cyan-700 underline"
+          >
+            Back
+          </button>
+          {message && (
+            <p className="mt-4 font-semibold text-red-700">{message}</p>
+          )}
+        </section>
+      </main>
+    );
+  if (!user && mode === "forgot")
+    return (
+      <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
+        <section className="mx-auto max-w-md rounded-2xl bg-white p-7 shadow-xl">
+          <p className="font-bold text-cyan-700">FASTMED</p>
+          <h1 className="mt-2 text-3xl font-extrabold">Reset password</h1>
+          <p className="mt-2 text-slate-600">
+            Enter your admin email and we will send you a link to set a new password.
+          </p>
+          <form onSubmit={sendReset} className="mt-6 space-y-4">
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+              className="w-full rounded-xl border p-3"
+            />
+            <button
+              disabled={loading}
+              className="w-full rounded-xl bg-cyan-700 p-3 font-bold text-white"
+            >
+              {loading ? "SENDING..." : "SEND RESET LINK"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setMessage("");
+              setNotice("");
+            }}
+            className="mt-4 text-sm font-semibold text-cyan-700 underline"
+          >
+            Back to sign in
+          </button>
+          {notice && (
+            <p className="mt-4 font-semibold text-cyan-900">{notice}</p>
+          )}
+          {message && (
+            <p className="mt-4 font-semibold text-red-700">{message}</p>
+          )}
+        </section>
+      </main>
+    );
   if (!user)
     return (
       <main className="min-h-screen bg-slate-50 p-6 text-slate-900">
@@ -158,6 +304,16 @@ export default function AdminPage() {
               {loading ? "SIGNING IN..." : "SIGN IN"}
             </button>
           </form>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("forgot");
+              setMessage("");
+            }}
+            className="mt-4 text-sm font-semibold text-cyan-700 underline"
+          >
+            Forgot password?
+          </button>
           {message && (
             <p className="mt-4 font-semibold text-red-700">{message}</p>
           )}
@@ -172,12 +328,23 @@ export default function AdminPage() {
             <p className="font-bold text-cyan-700">FASTMED ADMIN</p>
             <h1 className="text-3xl font-extrabold">Practitioner directory</h1>
           </div>
-          <button
-            onClick={() => supabase.auth.signOut().then(() => setUser(null))}
-            className="rounded-lg border px-4 py-2 font-bold"
-          >
-            SIGN OUT
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setMessage("");
+                setMode("reset");
+              }}
+              className="rounded-lg border px-4 py-2 font-bold"
+            >
+              CHANGE PASSWORD
+            </button>
+            <button
+              onClick={() => supabase.auth.signOut().then(() => setUser(null))}
+              className="rounded-lg border px-4 py-2 font-bold"
+            >
+              SIGN OUT
+            </button>
+          </div>
         </header>
         <p className="mt-2 text-slate-600">
           Only your approved account can make changes.
